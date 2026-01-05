@@ -38,6 +38,9 @@
 
 ## Teardown
 
+> Version i've bought : https://fr.aliexpress.com/item/1005007793281982.html
+> Maybe hardware is different with others vendor, but original firmware work on my version so...
+
 - **MCU**: ESP8266
 - **LCD controller**: ST7789 (RGB565)
 - **Case**: 3d printed
