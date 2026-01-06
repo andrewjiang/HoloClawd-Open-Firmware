@@ -153,7 +153,10 @@ Example colors:
 ## What's next ?
 Okay, now we have a minimal firmware that works.
 
-I really like ESP devices and I really enjoy working with ESP-IDF, so I’m planning — if possible (I haven’t checked compatibility yet, I’m still new to this world) — to create a firmware close to the original one in terms of features, but fully open source ofc \o/
+I really like ESP devices and I really enjoy working with ESP-IDF, so I’m planning ~~if possible (I haven’t checked compatibility yet, I’m still new to this world)~~ to create a firmware close to the original one in terms of features, but fully open source ofc \o/
+
+Since ESP IDF is not compatible with esp8266, i'm going to build the firmware on top of [plateformIO](https://platformio.org/)
+
 That’s the project, at least
 
 ## License
