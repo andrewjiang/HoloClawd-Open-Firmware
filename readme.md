@@ -16,7 +16,8 @@
     -   [Drawing to the screen](#drawing-to-the-screen)
     -   [Color format](#color-format)
     -   [Performance optimizations](#performance-optimizations)
--   [What's next ?](#whats-next-)
+-   [What's next ?](#whats-next)
+-   [The firmware](#plateformio-firmware)
 -   [License](#license)
 -   [Support](#support)
 
@@ -163,7 +164,13 @@ Since ESP IDF is not compatible with esp8266, i'm going to build the firmware on
 
 That’s the project, at least
 
-## PlateformIO Firmware build and upload (wip)
+## PlateformIO Firmware
+
+This is the "real" firmware I want to improve, with clean and reliable code
+
+The ota_secure one is just a POC of working screen and wifi to ensure the project is possible, crappy code & co
+
+WIP
 
 ```bash
 pio run
