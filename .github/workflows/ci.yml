@@ -2,9 +2,13 @@ name: CI
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    branches: ["*"]
+    tags: ["*"]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
 
 jobs:
   lint:
@@ -13,23 +17,30 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Install clang-tidy
         run: sudo apt-get update && sudo apt-get install -y clang-tidy
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.x"
+
       - name: Install compatible click
         run: pip install 'click<8.1.0' # prevent conflicts with PlatformIO
+
       - name: Install PlatformIO
         run: pip install platformio
+
       - name: Generate compile_commands.json with PlatformIO
         run: pio run -t compiledb || true
+
       - name: Find compile_commands.json path
         id: compiledb-path
         run: |
           db_path=$(find .pio/build -name compile_commands.json | head -n 1)
           echo "path=$db_path" >> $GITHUB_OUTPUT
+
       - name: Run clang-tidy on src/ and include/
         run: |
           db_path="${{ steps.compiledb-path.outputs.path }}"
@@ -43,18 +54,55 @@ jobs:
     name: Build with PlatformIO
     needs: lint
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.x"
+
       - name: Install compatible click
         run: pip install 'click<8.1.0' # prevendt conflicts with PlatformIO
+
       - name: Install PlatformIO
         run: pip install platformio
+
       - name: Install dependencies
         run: pio lib install
+
       - name: Build project
         run: pio run --environment all || pio run
+
+  package:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: firmware
+          path: build/
+
+      - name: Install semantic-release and plugins
+        run: npm install -g semantic-release @semantic-release/changelog @semantic-release/git @semantic-release/github
+
+      - name: Run semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: semantic-release
