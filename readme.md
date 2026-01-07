@@ -172,12 +172,22 @@ The ota_secure one is just a POC of working screen and wifi to ensure the projec
 
 WIP
 
-```bash
-pio run
-```
+### Build and upload code
 
 ```bash
 pio run --target upload
+```
+
+### Build and upload FS
+
+```bash
+pio run --target uploadfs
+```
+
+### Monitor
+
+```bash
+pio device monitor
 ```
 
 ## License

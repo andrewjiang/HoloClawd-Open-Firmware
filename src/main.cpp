@@ -1,21 +1,35 @@
-
-
 #include <Arduino.h>
+#include <LittleFS.h>
+
+#include "ConfigManager.h"
 #include "WiFiManager.h"
 
-const char* DEFAULT_STA_SSID = "";
-const char* DEFAULT_STA_PASSWORD = "";
+ConfigManager configManager;
 const char* AP_SSID = "HelloCubicLite";
 const char* AP_PASSWORD = "$str0ngPa$$w0rd";
+WiFiManager* wifiManager = nullptr;
 
-WiFiManager wifiManager(DEFAULT_STA_SSID, DEFAULT_STA_PASSWORD, AP_SSID, AP_PASSWORD);
-
+/**
+ * @brief Initializes the system
+ *
+ */
 void setup() {
     Serial.begin(115200);
     delay(200);
-    Serial.println("\n\nHelloCubic Lite Open Firmware");
+    Serial.println("");
+    Serial.println("HelloCubic Lite Open Firmware");
 
-    wifiManager.begin();
+    if (!LittleFS.begin()) {
+        Serial.println("Failed to mount LittleFS");
+        return;
+    }
+
+    if (configManager.load()) {
+        Serial.println("Loaded WiFi config from config.json");
+    }
+
+    wifiManager = new WiFiManager(configManager.getSSID(), configManager.getPassword(), AP_SSID, AP_PASSWORD);
+    wifiManager->begin();
 }
 
 void loop() {

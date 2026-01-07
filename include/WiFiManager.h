@@ -8,6 +8,8 @@ class WiFiManager {
    public:
     WiFiManager(const char* staSsid, const char* staPass, const char* apSsid, const char* apPass);
     void begin();
+    bool startStationMode();
+    bool startAccessPointMode();
     bool isApMode() const;
     IPAddress getIP() const;
 
