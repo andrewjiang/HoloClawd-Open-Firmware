@@ -76,6 +76,15 @@ jobs:
       - name: Build project
         run: pio run --environment all || pio run
 
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: |
+            .pio/build/esp12e/*.elf
+            .pio/build/esp12e/*.bin
+            .pio/build/project.checksum
+
   package:
     runs-on: ubuntu-latest
     needs: build
@@ -96,8 +105,8 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          name: firmware
-          path: build/
+          name: build-output
+          path: .pio/build
 
       - name: Install semantic-release and plugins
         run: npm install -g semantic-release @semantic-release/changelog @semantic-release/git @semantic-release/github
