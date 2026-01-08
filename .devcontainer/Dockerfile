@@ -17,6 +17,7 @@ RUN set -xe; \
         cppcheck \
         curl \
         git \
+        gnupg2 \
         liblwip-dev \
         neovim \
         sudo \

@@ -23,7 +23,9 @@
 		"-v",
 		"${env:HOME}/.ssh:/home/debian/.ssh:ro",
 		"-v",
-		"${env:HOME}/.gnupg:/home/debian/.gnupg:ro",
+		"${env:HOME}/.gitconfig:/home/debian/.gitconfig:ro",
+		"-v",
+		"/run/user/1000/gnupg:/home/debian/.gnupg-host",
 		"-v",
 		"/run/udev:/run/udev",
 		"-v",
@@ -34,5 +36,10 @@
 		"${env:HOME}/.platformio:/home/debian/.platformio",
 		"--device-cgroup-rule=c 166:* rmw",
 		"--device-cgroup-rule=c 188:* rmw"
-	]
+	],
+	"containerEnv": {
+		"GPG_AGENT_INFO": "/run/gnupg/S.gpg-agent:0:1",
+		"GNUPGHOME": "/home/debian/.gnupg"
+	},
+	"postStartCommand": "ln -sf /home/debian/.gnupg-host/S.gpg-agent /home/debian/.gnupg/S.gpg-agent"
 }
