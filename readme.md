@@ -2,6 +2,12 @@
 
 > This repo documents the LCD interface inside the **HelloCubic Lite** cube (ESP8266) from [GeekMagicClock](https://github.com/GeekMagicClock/HelloCubic-Lite)
 
+[![Latest Release](https://img.shields.io/github/v/release/Times-Z/Hellocubic-Lite-OpenFirmware?label=Latest%20Version&color=c56a90&style=for-the-badge&logo=star)](https://github.com/Times-Z/Hellocubic-Lite-OpenFirmware/releases)
+[![Build status main](https://img.shields.io/github/actions/workflow/status/Times-Z/Hellocubic-Lite-OpenFirmware/.github/workflows/ci.yml?branch=main&label=Pipeline%20Status%20main&style=for-the-badge&logo=star)](https://github.com/Times-Z/Hellocubic-Lite-OpenFirmware/actions)
+
+[![Build status develop](https://img.shields.io/github/actions/workflow/status/Times-Z/Hellocubic-Lite-OpenFirmware/.github/workflows/ci.yml?branch=develop&label=Pipeline%20Status%20develop&style=for-the-badge&logo=star)](https://github.com/Times-Z/Hellocubic-Lite-OpenFirmware/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
+
 ## Table of Contents
 
 -   [Important information](#important-information)
