@@ -1,5 +1,14 @@
-#include "../lib/Logger/Logger.h"  // Maybe use a better path here if possible
+#include <Logger.h>
 #include "wireless/WiFiManager.h"
+
+/**
+ * @brief Maximum number of attempts to connect to a wifi network
+ */
+static constexpr int MAX_CONNECTION_ATTEMPTS = 20;
+/**
+ * @brief Delay in milliseconds between wifi connection attempts
+ */
+static constexpr uint32_t CONNECTION_DELAY_MS = 500;
 
 /**
  * @brief WifiManager constructor
@@ -12,7 +21,7 @@
 WiFiManager::WiFiManager(const char* staSsid, const char* staPass, const char* apSsid, const char* apPass)
     : _staSsid(staSsid), _staPass(staPass), _apSsid(apSsid), _apPass(apPass) {}
 
-void WiFiManager::begin() {
+auto WiFiManager::begin() -> void {
     if (!WiFiManager::startStationMode()) {
         WiFiManager::startAccessPointMode();
     }
@@ -28,21 +37,20 @@ void WiFiManager::begin() {
  *
  * @return true if the device successfully connects to the WiFi network false otherwise
  */
-bool WiFiManager::startStationMode() {
+auto WiFiManager::startStationMode() -> bool {
     WiFi.mode(WIFI_STA);
     WiFi.begin(_staSsid, _staPass);
     int attempts = 0;
 
     Logger::info("Connecting to WiFi...");
 
-    while (WiFi.status() != WL_CONNECTED && attempts < 20) {
-        delay(500);
+    while (WiFi.status() != WL_CONNECTED && attempts < MAX_CONNECTION_ATTEMPTS) {
+        delay(CONNECTION_DELAY_MS);
         attempts++;
     }
 
     if (WiFi.status() == WL_CONNECTED) {
         _apMode = false;
-
         return true;
     }
 
@@ -54,7 +62,7 @@ bool WiFiManager::startStationMode() {
  *
  * @return true Always returns true to indicate the AP mode was started
  */
-bool WiFiManager::startAccessPointMode() {
+auto WiFiManager::startAccessPointMode() -> bool {
     WiFi.mode(WIFI_AP);
     WiFi.softAP(_apSsid, _apPass);
 
@@ -63,6 +71,6 @@ bool WiFiManager::startAccessPointMode() {
     return true;
 }
 
-bool WiFiManager::isApMode() const { return _apMode; }
+auto WiFiManager::isApMode() const -> bool { return _apMode; }
 
-IPAddress WiFiManager::getIP() const { return _apMode ? WiFi.softAPIP() : WiFi.localIP(); }
+auto WiFiManager::getIP() const -> IPAddress { return _apMode ? WiFi.softAPIP() : WiFi.localIP(); }

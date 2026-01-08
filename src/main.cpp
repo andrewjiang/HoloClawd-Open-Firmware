@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <LittleFS.h>
 
-#include "../lib/Logger/Logger.h"  // Maybe use a better path here if possible
+#include <Logger.h>
 #include "config/ConfigManager.h"
 #include "wireless/WiFiManager.h"
 
@@ -10,13 +10,16 @@ const char* AP_SSID = "HelloCubicLite";
 const char* AP_PASSWORD = "$str0ngPa$$w0rd";
 WiFiManager* wifiManager = nullptr;
 
+static constexpr uint32_t SERIAL_BAUD_RATE = 115200;
+static constexpr uint32_t BOOT_DELAY_MS = 200;
+
 /**
  * @brief Initializes the system
  *
  */
 void setup() {
-    Serial.begin(115200);
-    delay(200);
+    Serial.begin(SERIAL_BAUD_RATE);
+    delay(BOOT_DELAY_MS);
     Serial.println("");
     Logger::info("HelloCubic Lite Open Firmware");
 

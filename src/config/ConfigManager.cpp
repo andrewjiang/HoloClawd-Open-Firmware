@@ -1,7 +1,7 @@
 #include <ArduinoJson.h>
 #include <LittleFS.h>
 
-#include "../lib/Logger/Logger.h"  // Maybe use a better path here if possible
+#include <Logger.h>
 #include "config/ConfigManager.h"
 
 ConfigManager::ConfigManager(const char* filename) : filename(filename) {}
@@ -11,7 +11,7 @@ ConfigManager::ConfigManager(const char* filename) : filename(filename) {}
  *
  * @return true if the configuration was successfully loaded and parsed false otherwise
  */
-bool ConfigManager::load() {
+auto ConfigManager::load() -> bool {
     if (!LittleFS.begin()) {
         Logger::error("Failed to mount LittleFS");
         return false;
@@ -53,11 +53,11 @@ bool ConfigManager::load() {
  *
  * @return The SSID as a c style string
  */
-const char* ConfigManager::getSSID() { return ssid.c_str(); }
+auto ConfigManager::getSSID() -> const char* { return ssid.c_str(); }
 
 /**
  * @brief Retrieves the current Wi-Fi password
  *
  * @return The password as a c style string
  */
-const char* ConfigManager::getPassword() { return password.c_str(); }
+auto ConfigManager::getPassword() -> const char* { return password.c_str(); }
