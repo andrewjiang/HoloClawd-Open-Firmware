@@ -5,6 +5,7 @@
  * @brief Maximum number of attempts to connect to a wifi network
  */
 static constexpr int MAX_CONNECTION_ATTEMPTS = 20;
+
 /**
  * @brief Delay in milliseconds between wifi connection attempts
  */
@@ -26,10 +27,10 @@ auto WiFiManager::begin() -> void {
         WiFiManager::startAccessPointMode();
     }
 
-    Logger::info("Wifi active");
-    Logger::info(String("Mode : " + String(_apMode ? "AP" : "STA")).c_str());
-    Logger::info(String("SSID : " + String(_apMode ? _apSsid : _staSsid)).c_str());
-    Logger::info(String("IP   : " + WiFiManager::getIP().toString()).c_str());
+    Logger::info("Wifi active", "WiFiManager");
+    Logger::info(String("Mode : " + String(_apMode ? "AP" : "STA")).c_str(), "WiFiManager");
+    Logger::info(String("SSID : " + String(_apMode ? _apSsid : _staSsid)).c_str(), "WiFiManager");
+    Logger::info(String("IP   : " + WiFiManager::getIP().toString()).c_str(), "WiFiManager");
 }
 
 /**
@@ -42,7 +43,7 @@ auto WiFiManager::startStationMode() -> bool {
     WiFi.begin(_staSsid, _staPass);
     int attempts = 0;
 
-    Logger::info("Connecting to WiFi...");
+    Logger::info("Connecting to WiFi...", "WiFiManager");
 
     while (WiFi.status() != WL_CONNECTED && attempts < MAX_CONNECTION_ATTEMPTS) {
         delay(CONNECTION_DELAY_MS);

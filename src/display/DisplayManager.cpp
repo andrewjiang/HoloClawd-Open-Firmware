@@ -1,0 +1,637 @@
+#include <SPI.h>
+#include <Logger.h>
+
+#include "display/DisplayManager.h"
+#include "display/HelloCubicSPIBus.h"
+
+// LCD configuration defaults
+static constexpr bool LCD_ENABLE = true;
+static constexpr int16_t LCD_W = 240;
+static constexpr int16_t LCD_H = 240;
+static constexpr uint8_t LCD_ROTATION = 4;
+static constexpr int8_t LCD_MOSI_GPIO = 13;
+static constexpr int8_t LCD_SCK_GPIO = 14;
+static constexpr int8_t LCD_CS_GPIO = 2;
+static constexpr int8_t LCD_DC_GPIO = 0;
+static constexpr int8_t LCD_RST_GPIO = 15;
+static constexpr bool LCD_CS_ACTIVE_HIGH = true;
+static constexpr bool LCD_DC_CMD_HIGH = false;
+static constexpr uint8_t LCD_SPI_MODE = 0;
+static constexpr uint32_t LCD_SPI_HZ = 80000000;
+static constexpr int8_t LCD_BACKLIGHT_GPIO = 5;
+static constexpr bool LCD_BACKLIGHT_ACTIVE_LOW = true;
+static Arduino_DataBus* g_lcdBus = nullptr;
+static Arduino_GFX* g_lcd = nullptr;
+static bool g_lcdReady = false;
+static bool g_lcdInitializing = false;
+static uint32_t g_lcdInitAttempts = 0;
+static uint32_t g_lcdInitLastMs = 0;
+static bool g_lcdInitOk = false;
+static constexpr uint32_t LCD_HARDWARE_RESET_DELAY_MS = 100;
+static constexpr uint32_t LCD_BEGIN_DELAY_MS = 10;
+static constexpr int16_t DISPLAY_PADDING = 10;
+static constexpr int16_t DISPLAY_INFO_Y = 100;
+
+// Colors definitions
+static constexpr uint16_t LCD_BLACK = 0x0000;
+static constexpr uint16_t LCD_WHITE = 0xFFFF;
+static constexpr uint16_t LCD_RED = 0xF800;
+static constexpr uint16_t LCD_GREEN = 0x07E0;
+static constexpr uint16_t LCD_BLUE = 0x001F;
+
+// Screen cmd
+static constexpr uint8_t ST7789_SLEEP_DELAY_MS = 120;
+static constexpr uint8_t ST7789_SLEEP_OUT = 0x11;
+static constexpr uint8_t ST7789_PORCH = 0xB2;
+static constexpr uint8_t ST7789_PORCH_SETTINGS = 0x1F;
+
+static constexpr uint8_t ST7789_TEARING_EFFECT = 0x35;
+static constexpr uint8_t ST7789_MEMORY_ACCESS_CONTROL = 0x36;
+static constexpr uint8_t ST7789_COLORMODE = 0x3A;
+static constexpr uint8_t ST7789_COLORMODE_RGB565 = 0x05;
+
+static constexpr uint8_t ST7789_POWER_B7 = 0xB7;
+static constexpr uint8_t ST7789_POWER_BB = 0xBB;
+static constexpr uint8_t ST7789_POWER_C0 = 0xC0;
+static constexpr uint8_t ST7789_POWER_C2 = 0xC2;
+static constexpr uint8_t ST7789_POWER_C3 = 0xC3;
+static constexpr uint8_t ST7789_POWER_C4 = 0xC4;
+static constexpr uint8_t ST7789_POWER_C6 = 0xC6;
+static constexpr uint8_t ST7789_POWER_D0 = 0xD0;
+static constexpr uint8_t ST7789_POWER_D6 = 0xD6;
+
+static constexpr uint8_t ST7789_GAMMA_POS = 0xE0;
+static constexpr uint8_t ST7789_GAMMA_NEG = 0xE1;
+static constexpr uint8_t ST7789_GAMMA_CTRL = 0xE4;
+
+static constexpr uint8_t ST7789_INVERSION_ON = 0x21;
+static constexpr uint8_t ST7789_DISPLAY_ON = 0x29;
+
+// Porch parameters used in sequence
+static constexpr uint8_t ST7789_PORCH_PARAM_HS = 0x1F;
+static constexpr uint8_t ST7789_PORCH_PARAM_VS = 0x1F;
+static constexpr uint8_t ST7789_PORCH_PARAM_DUMMY = 0x00;
+static constexpr uint8_t ST7789_PORCH_PARAM_HBP = 0x33;
+static constexpr uint8_t ST7789_PORCH_PARAM_VBP = 0x33;
+
+// Simple params for commands
+static constexpr uint8_t ST7789_TEARING_PARAM_OFF = 0x00;
+static constexpr uint8_t ST7789_MADCTL_PARAM_DEFAULT = 0x00;
+static constexpr uint8_t ST7789_B7_PARAM_DEFAULT = 0x00;
+static constexpr uint8_t ST7789_BB_PARAM_VOLTAGE = 0x36;
+static constexpr uint8_t ST7789_C0_PARAM_1 = 0x2C;
+static constexpr uint8_t ST7789_C2_PARAM_1 = 0x01;
+static constexpr uint8_t ST7789_C3_PARAM_1 = 0x13;
+static constexpr uint8_t ST7789_C4_PARAM_1 = 0x20;
+static constexpr uint8_t ST7789_C6_PARAM_1 = 0x13;
+static constexpr uint8_t ST7789_D6_PARAM_1 = 0xA1;
+static constexpr uint8_t ST7789_D0_PARAM_1 = 0xA4;
+static constexpr uint8_t ST7789_D0_PARAM_2 = 0xA1;
+
+// Gamma parameter blocks
+static constexpr std::array<uint8_t, 14> ST7789_GAMMA_POS_DATA = {0xF0, 0x08, 0x0E, 0x09, 0x08, 0x04, 0x2F,
+                                                                  0x33, 0x45, 0x36, 0x13, 0x12, 0x2A, 0x2D};
+static constexpr std::array<uint8_t, 14> ST7789_GAMMA_NEG_DATA = {0xF0, 0x0E, 0x12, 0x0C, 0x0A, 0x15, 0x2E,
+                                                                  0x32, 0x44, 0x39, 0x17, 0x18, 0x2B, 0x2F};
+static constexpr std::array<uint8_t, 3> ST7789_GAMMA_CTRL_DATA = {0x1D, 0x00, 0x00};
+
+// Column/row address parameters
+static constexpr uint8_t ST7789_ADDR_START_HIGH = 0x00;
+static constexpr uint8_t ST7789_ADDR_START_LOW = 0x00;
+static constexpr uint8_t ST7789_ADDR_END_HIGH = 0x00;
+static constexpr uint8_t ST7789_ADDR_END_LOW = 0xEF;
+
+/**
+ * @brief Turn the LCD backlight on
+ *
+ * @return void
+ */
+static inline void lcdBacklightOn() {
+    if (LCD_BACKLIGHT_GPIO < 0) {
+        return;
+    }
+
+    pinMode((uint8_t)LCD_BACKLIGHT_GPIO, OUTPUT);
+    digitalWrite((uint8_t)LCD_BACKLIGHT_GPIO, LCD_BACKLIGHT_ACTIVE_LOW ? LOW : HIGH);
+}
+
+/**
+ * @brief Write a single command byte to the ST7789 via the data bus
+ *
+ * @return void
+ */
+static inline void ST7789_WriteCommand(uint8_t cmd) {
+    if (g_lcdBus == nullptr) {
+        return;
+    }
+
+    g_lcdBus->writeCommand(cmd);
+}
+
+/**
+ * @brief Write a single data byte to the ST7789 via the data bus
+ *
+ * @return void
+ */
+static inline void ST7789_WriteData(uint8_t data) {
+    if (g_lcdBus == nullptr) {
+        return;
+    };
+
+    g_lcdBus->write(data);
+}
+
+/**
+ * @brief Run a vendor-specific initialization sequence for the ST7789 panel
+ *
+ *  - Sleep out (0x11)
+ *
+ *  - Porch settings (0xB2)
+ *
+ *  - Tearing effect on (0x35)
+ *
+ *  - Memory access control/MADCTL (0x36)
+ *
+ *  - Color mode to 16-bit RGB565 (0x3A)
+ *
+ *  - Various power control settings (0xB7, 0xBB, 0xC0-0xC6, 0xD0, 0xD6)
+ *
+ *  - Gamma correction settings (0xE0, 0xE1, 0xE4)
+ *
+ *  - Display inversion on (0x21)
+ *
+ *  - Display on (0x29)
+ *
+ *  - Full window setup and RAMWR command (0x2A, 0x2B, 0x2C)
+ *
+ * @return void
+ */
+static void lcdRunVendorInit() {
+    if (g_lcdBus == nullptr) {
+        return;
+    };
+
+    g_lcdBus->beginWrite();
+
+    ST7789_WriteCommand(ST7789_SLEEP_OUT);
+    delay(ST7789_SLEEP_DELAY_MS);
+    yield();
+
+    ST7789_WriteCommand(ST7789_PORCH);
+    ST7789_WriteData(ST7789_PORCH_PARAM_HS);
+    ST7789_WriteData(ST7789_PORCH_PARAM_VS);
+    ST7789_WriteData(ST7789_PORCH_PARAM_DUMMY);
+    ST7789_WriteData(ST7789_PORCH_PARAM_HBP);
+    ST7789_WriteData(ST7789_PORCH_PARAM_VBP);
+    yield();
+
+    ST7789_WriteCommand(ST7789_TEARING_EFFECT);
+    ST7789_WriteData(ST7789_TEARING_PARAM_OFF);
+    yield();
+
+    ST7789_WriteCommand(ST7789_MEMORY_ACCESS_CONTROL);
+    ST7789_WriteData(ST7789_MADCTL_PARAM_DEFAULT);
+    yield();
+
+    ST7789_WriteCommand(ST7789_COLORMODE);
+    ST7789_WriteData(ST7789_COLORMODE_RGB565);
+    yield();
+
+    ST7789_WriteCommand(ST7789_POWER_B7);
+    ST7789_WriteData(ST7789_B7_PARAM_DEFAULT);
+    yield();
+
+    ST7789_WriteCommand(ST7789_POWER_BB);
+    ST7789_WriteData(ST7789_BB_PARAM_VOLTAGE);
+    yield();
+
+    ST7789_WriteCommand(ST7789_POWER_C0);
+    ST7789_WriteData(ST7789_C0_PARAM_1);
+    yield();
+
+    ST7789_WriteCommand(ST7789_POWER_C2);
+    ST7789_WriteData(ST7789_C2_PARAM_1);
+    yield();
+
+    ST7789_WriteCommand(ST7789_POWER_C3);
+    ST7789_WriteData(ST7789_C3_PARAM_1);
+    yield();
+
+    ST7789_WriteCommand(ST7789_POWER_C4);
+    ST7789_WriteData(ST7789_C4_PARAM_1);
+    yield();
+
+    ST7789_WriteCommand(ST7789_POWER_C6);
+    ST7789_WriteData(ST7789_C6_PARAM_1);
+    yield();
+
+    ST7789_WriteCommand(ST7789_POWER_D6);
+    ST7789_WriteData(ST7789_D6_PARAM_1);
+    yield();
+
+    ST7789_WriteCommand(ST7789_POWER_D0);
+    ST7789_WriteData(ST7789_D0_PARAM_1);
+    ST7789_WriteData(ST7789_D0_PARAM_2);
+    yield();
+
+    ST7789_WriteCommand(ST7789_POWER_D6);
+    ST7789_WriteData(ST7789_D6_PARAM_1);
+    yield();
+
+    ST7789_WriteCommand(ST7789_GAMMA_POS);
+    for (uint8_t v : ST7789_GAMMA_POS_DATA) {
+        ST7789_WriteData(v);
+    }
+    yield();
+
+    ST7789_WriteCommand(ST7789_GAMMA_NEG);
+    for (uint8_t v : ST7789_GAMMA_NEG_DATA) {
+        ST7789_WriteData(v);
+    }
+    yield();
+
+    ST7789_WriteCommand(ST7789_GAMMA_CTRL);
+    for (uint8_t v : ST7789_GAMMA_CTRL_DATA) {
+        ST7789_WriteData(v);
+    }
+    yield();
+
+    ST7789_WriteCommand(ST7789_INVERSION_ON);
+    yield();
+
+    ST7789_WriteCommand(ST7789_DISPLAY_ON);
+    yield();
+
+    ST7789_WriteCommand(ST7789_CASET);
+    ST7789_WriteData(ST7789_ADDR_START_HIGH);
+    ST7789_WriteData(ST7789_ADDR_START_LOW);
+    ST7789_WriteData(ST7789_ADDR_END_HIGH);
+    ST7789_WriteData(ST7789_ADDR_END_LOW);
+    yield();
+
+    ST7789_WriteCommand(ST7789_RASET);
+    ST7789_WriteData(ST7789_ADDR_START_HIGH);
+    ST7789_WriteData(ST7789_ADDR_START_LOW);
+    ST7789_WriteData(ST7789_ADDR_END_HIGH);
+    ST7789_WriteData(ST7789_ADDR_END_LOW);
+    yield();
+
+    ST7789_WriteCommand(ST7789_RAMWR);
+    yield();
+
+    g_lcdBus->endWrite();
+}
+
+/**
+ * @brief Perform a hardware reset of the LCD panel
+ *
+ * Toggles the RST GPIO if defined, with appropriate delays
+ *
+ * @return void
+ */
+static void lcdHardReset() {
+    if (LCD_RST_GPIO < 0) {
+        return;
+    }
+
+    pinMode((uint8_t)LCD_RST_GPIO, OUTPUT);
+    digitalWrite((uint8_t)LCD_RST_GPIO, HIGH);
+    delay(LCD_HARDWARE_RESET_DELAY_MS);
+    digitalWrite((uint8_t)LCD_RST_GPIO, LOW);
+    delay(LCD_HARDWARE_RESET_DELAY_MS);
+    digitalWrite((uint8_t)LCD_RST_GPIO, HIGH);
+    delay(LCD_HARDWARE_RESET_DELAY_MS);
+}
+
+/**
+ * @brief Shutdown the display and free allocated resources
+ *
+ * @return void
+ */
+static void lcdShutdown() {
+    g_lcdReady = false;
+    g_lcdInitializing = false;
+    if (g_lcd != nullptr) {
+        delete static_cast<Arduino_ST7789*>(g_lcd);
+        g_lcd = nullptr;
+    }
+    if (g_lcdBus != nullptr) {
+        delete static_cast<HelloCubicSPIBus*>(g_lcdBus);
+        g_lcdBus = nullptr;
+    }
+}
+
+/**
+ * @brief Ensure the LCD is initialized and ready for drawing
+ *
+ * @return void
+ */
+static void lcdEnsureInit() {
+    if (!LCD_ENABLE || g_lcdReady || g_lcdInitializing) {
+        return;
+    };
+
+    g_lcdInitializing = true;
+    g_lcdInitAttempts++;
+    g_lcdInitLastMs = millis();
+    g_lcdInitOk = false;
+
+    Logger::info("Initialization started", "DisplayManager");
+
+    lcdBacklightOn();
+    lcdHardReset();
+
+    if (g_lcd != nullptr) {
+        delete static_cast<Arduino_ST7789*>(g_lcd);
+        g_lcd = nullptr;
+    }
+    if (g_lcdBus != nullptr) {
+        delete static_cast<HelloCubicSPIBus*>(g_lcdBus);
+        g_lcdBus = nullptr;
+    }
+
+    g_lcdBus =
+        new HelloCubicSPIBus(LCD_DC_GPIO, LCD_CS_GPIO, LCD_CS_ACTIVE_HIGH, (int32_t)LCD_SPI_HZ, (int8_t)LCD_SPI_MODE);
+    g_lcd = new Arduino_ST7789(g_lcdBus, -1, LCD_ROTATION, true, LCD_W, LCD_H);
+
+    g_lcdBus->begin((int32_t)LCD_SPI_HZ, (int8_t)LCD_SPI_MODE);
+
+    g_lcd->begin();
+    delay(LCD_BEGIN_DELAY_MS);
+
+    lcdHardReset();
+    g_lcdBus->begin((int32_t)LCD_SPI_HZ, (int8_t)LCD_SPI_MODE);
+
+    lcdRunVendorInit();
+
+    g_lcd->setRotation(LCD_ROTATION);
+
+    g_lcdReady = true;
+    g_lcdInitializing = false;
+    g_lcdInitOk = true;
+
+    Logger::info(
+        ("Pointers g_lcd=" + String((uintptr_t)g_lcd, HEX) + " g_lcdBus=" + String((uintptr_t)g_lcdBus, HEX)).c_str(),
+        "DisplayManager");
+    Logger::info(("Width=" + String(g_lcd->width()) + " height=" + String(g_lcd->height())).c_str(), "DisplayManager");
+
+    g_lcd->fillScreen(LCD_BLACK);
+    g_lcd->setTextColor(LCD_WHITE, LCD_BLACK);
+
+    Logger::info("Initialization completed", "DisplayManager");
+}
+
+/**
+ * @brief Wrap the given text into lines that fit into the available area
+ *
+ * @return a vector of wrapped lines (at least one empty line when input is empty)
+ */
+static void lcdPushLine(std::vector<String>& out, String& line, int maxLines, int maxSlots) {
+    if ((int)out.size() >= maxLines || (int)out.size() >= maxSlots) {
+        return;
+    }
+    out.push_back(line);
+    line = "";
+}
+
+/**
+ * @brief helper to append a word into the current line or push lines as needed
+ *
+ * @return void
+ */
+static void lcdAppendWord(std::vector<String>& out, String& line, String& word, int maxCharsPerLine, int maxLines,
+                          int maxSlots) {
+    if (word.length() == 0U) {
+        return;
+    }
+
+    if ((int)word.length() > maxCharsPerLine) {
+        if (line.length() != 0U) {
+            lcdPushLine(out, line, maxLines, maxSlots);
+            if ((int)out.size() >= maxLines || (int)out.size() >= maxSlots) {
+                word = "";
+                return;
+            }
+        }
+        line = word;
+        word = "";
+        return;
+    }
+
+    if (line.length() == 0U) {
+        line = word;
+        word = "";
+        return;
+    }
+
+    if ((int)(line.length() + 1 + word.length()) <= maxCharsPerLine) {
+        line += ' ';
+        line += word;
+        word = "";
+        return;
+    }
+
+    lcdPushLine(out, line, maxLines, maxSlots);
+    if ((int)out.size() >= maxLines || (int)out.size() >= maxSlots) {
+        word = "";
+        return;
+    }
+    line = word;
+    word = "";
+}
+
+/**
+ * @brief Wrap the given text into lines that fit into the available area
+ *
+ * @param startX Starting X coordinate in pixels
+ * @param startY Starting Y coordinate in pixels
+ * @param text The text to wrap
+ * @param textSize Font size multiplier (integer)
+ * @param screenW Total screen width in pixels
+ * @param screenH Total screen height in pixels
+ *
+ * @return a vector of wrapped lines (at least one empty line when input is empty)
+ */
+static auto lcdWrapText(int16_t startX, int16_t startY, const String& text, uint8_t textSize, int16_t screenW,
+                        int16_t screenH) -> std::vector<String> {
+    constexpr int MAX_LINE_SLOTS = 10;
+
+    const auto charW = static_cast<int16_t>(6 * textSize);
+    const auto charH = static_cast<int16_t>(8 * textSize);
+    if (charW <= 0 || charH <= 0) {
+        return {String()};
+    }
+
+    const int maxCharsPerLine = (screenW - startX) / charW;
+    const int maxLines = (screenH - startY) / charH;
+    if (maxCharsPerLine <= 0 || maxLines <= 0) {
+        return {String()};
+    }
+
+    std::vector<String> out;
+    out.reserve(std::min(maxLines, MAX_LINE_SLOTS));
+
+    String line;
+    String word;
+
+    for (uint32_t i = 0; i < text.length(); ++i) {
+        char chr = text.charAt(i);
+        if (chr == '\r') {
+            continue;
+        }
+        if (chr == '\n') {
+            lcdAppendWord(out, line, word, maxCharsPerLine, maxLines, MAX_LINE_SLOTS);
+            lcdPushLine(out, line, maxLines, MAX_LINE_SLOTS);
+            continue;
+        }
+        if (chr == ' ' || chr == '\t') {
+            lcdAppendWord(out, line, word, maxCharsPerLine, maxLines, MAX_LINE_SLOTS);
+            continue;
+        }
+        word += chr;
+    }
+
+    lcdAppendWord(out, line, word, maxCharsPerLine, maxLines, MAX_LINE_SLOTS);
+
+    if (line.length() != 0U && (int)out.size() < maxLines && (int)out.size() < MAX_LINE_SLOTS) {
+        out.push_back(line);
+    }
+    if (out.empty()) {
+        out.push_back(String());
+    }
+
+    return out;
+}
+
+/**
+ * @brief Draw text on the display with simple word-wrapping
+ *
+ * - Ensures the display is initialized before drawing
+ *
+ * - Wraps words to fit the remaining width and limits the number of lines to avoid overflowing the screen
+ *
+ * @param startX Starting X coordinate in pixels
+ * @param startY Starting Y coordinate in pixels
+ * @param text The text to draw (can contain newlines)
+ * @param textSize Font size multiplier (integer)
+ * @param fgColor Foreground color (16-bit RGB565)
+ * @param bgColor Background color (16-bit RGB565)
+ * @param clearBg If true, clears the background rectangle before drawing
+ */
+static void lcdDrawTextWrapped(int16_t startX, int16_t startY, const String& text, uint8_t textSize, uint16_t fgColor,
+                               uint16_t bgColor, bool clearBg) {
+    if (!LCD_ENABLE) {
+        return;
+    }
+
+    if (!g_lcdReady) {
+        if (g_lcdInitializing) {
+            return;
+        }
+        lcdEnsureInit();
+    }
+    if (!g_lcdReady || g_lcd == nullptr) {
+        return;
+    }
+
+    const auto screenW = static_cast<int16_t>(g_lcd->width());
+    const auto screenH = static_cast<int16_t>(g_lcd->height());
+
+    if (startX < 0) {
+        startX = 0;
+    }
+    if (startY < 0) {
+        startY = 0;
+    }
+    if (startX >= screenW || startY >= screenH) {
+        return;
+    }
+
+    const auto charW = static_cast<int16_t>(6 * textSize);
+    const auto charH = static_cast<int16_t>(8 * textSize);
+    if (charW <= 0 || charH <= 0) {
+        return;
+    }
+
+    auto lines = lcdWrapText(startX, startY, text, textSize, screenW, screenH);
+
+    if (clearBg) {
+        const auto heightPixels = static_cast<int16_t>(static_cast<int>(lines.size()) * static_cast<int>(charH));
+        g_lcd->fillRect(startX, startY, static_cast<int16_t>(screenW - startX), static_cast<int16_t>(heightPixels),
+                        bgColor);
+    }
+
+    g_lcd->setTextSize(textSize);
+    g_lcd->setTextColor(fgColor, bgColor);
+    for (size_t li = 0; li < lines.size(); ++li) {
+        g_lcd->setCursor(startX, static_cast<int16_t>(startY + static_cast<int>(li) * static_cast<int>(charH)));
+        g_lcd->print(lines[li]);
+    }
+}
+
+/**
+ * @brief Initialize the DisplayManager and LCD
+ *
+ * Ensures the LCD is initialized and ready for drawing
+ *
+ * @return void
+ */
+auto DisplayManager::begin() -> void { lcdEnsureInit(); }
+
+/**
+ * @brief Check if the display is ready for drawing
+ *
+ * @return true if ready false otherwise
+ */
+auto DisplayManager::isReady() -> bool { return g_lcdReady && g_lcd != nullptr && g_lcdInitOk; }
+
+/**
+ * @brief Draw the startup screen on the LCD
+ *
+ * @return void
+ */
+auto DisplayManager::drawStartup() -> void {
+    if (!DisplayManager::isReady()) {
+        return;
+    }
+    g_lcd->fillScreen(LCD_BLACK);
+    g_lcd->setTextSize(2);
+    g_lcd->setTextColor(LCD_WHITE, LCD_BLACK);
+    g_lcd->setCursor(DISPLAY_PADDING, DISPLAY_PADDING);
+    DisplayManager::drawTextWrapped(DISPLAY_PADDING, DISPLAY_PADDING, "HelloCubic Lite Open", 2, LCD_WHITE, LCD_BLACK,
+                                    false);
+
+    String info =
+        "CPU freq: " + String(ESP.getCpuFreqMHz()) + " MHz\n";  // NOLINT(readability-static-accessed-through-instance)
+    info += "Flash chip ID: 0x" +
+            String(ESP.getFlashChipId(), HEX);  // NOLINT(readability-static-accessed-through-instance)
+    DisplayManager::drawTextWrapped(DISPLAY_PADDING, DISPLAY_INFO_Y, info, 2, LCD_WHITE, LCD_BLACK, true);
+
+    const int16_t box = 18;
+    const int16_t gap = 8;
+    const int16_t boxY = 150;
+    g_lcd->fillRect(DISPLAY_PADDING, boxY, (int16_t)(box * 3 + gap * 2), box, LCD_BLACK);
+    g_lcd->fillRect(DISPLAY_PADDING, boxY, box, box, LCD_RED);
+    g_lcd->fillRect((int16_t)(DISPLAY_PADDING + box + gap), boxY, box, box, LCD_GREEN);
+    g_lcd->fillRect((int16_t)(DISPLAY_PADDING + (box + gap) * 2), boxY, box, box, LCD_BLUE);
+
+    Logger::info("Startup screen drawn", "DisplayManager");
+}
+
+/**
+ * @brief Draw text on the display with simple word-wrapping
+ *
+ * @param x Starting X coordinate in pixels
+ * @param y Starting Y coordinate in pixels
+ * @param text The text to draw (can contain newlines)
+ * @param textSize Font size multiplier (integer)
+ * @param fg Foreground color (16-bit RGB565)
+ * @param bg Background color (16-bit RGB565)
+ * @param clearBg If true, clears the background rectangle before drawing
+ *
+ * @return void
+ */
+void DisplayManager::drawTextWrapped(int16_t xPos, int16_t yPos, const String& text, uint8_t textSize, uint16_t fgColor,
+                                     uint16_t bgColor, bool clearBg) {
+    lcdDrawTextWrapped(xPos, yPos, text, textSize, fgColor, bgColor, clearBg);
+}

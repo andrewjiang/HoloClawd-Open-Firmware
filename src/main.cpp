@@ -1,9 +1,12 @@
 #include <Arduino.h>
 #include <LittleFS.h>
+#include <Arduino_GFX_Library.h>
+#include <SPI.h>
 
 #include <Logger.h>
 #include "config/ConfigManager.h"
 #include "wireless/WiFiManager.h"
+#include "display/DisplayManager.h"
 
 ConfigManager configManager;
 const char* AP_SSID = "HelloCubicLite";
@@ -34,6 +37,11 @@ void setup() {
 
     wifiManager = new WiFiManager(configManager.getSSID(), configManager.getPassword(), AP_SSID, AP_PASSWORD);
     wifiManager->begin();
+
+    DisplayManager::begin();
+    if (DisplayManager::isReady()) {
+        DisplayManager::drawStartup();
+    }
 }
 
 void loop() {
