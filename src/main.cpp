@@ -4,6 +4,7 @@
 #include <SPI.h>
 
 #include <Logger.h>
+#include "project_version.h"
 #include "config/ConfigManager.h"
 #include "wireless/WiFiManager.h"
 #include "display/DisplayManager.h"
@@ -24,7 +25,7 @@ void setup() {
     Serial.begin(SERIAL_BAUD_RATE);
     delay(BOOT_DELAY_MS);
     Serial.println("");
-    Logger::info("HelloCubic Lite Open Firmware");
+    Logger::info(("HelloCubic Lite Open Firmware " + String(PROJECT_VER_STR)).c_str());
 
     if (!LittleFS.begin()) {
         Logger::error("Failed to mount LittleFS");
