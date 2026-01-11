@@ -66,7 +66,7 @@
 -   **Resolution**: 240x240 pixels
 -   **Color Format**: RGB565 (16-bit color)
 -   **Interface**: SPI (Serial Peripheral Interface)
--   **SPI Speed**: 80 MHz
+-   **SPI Speed**: up to 80 MHz (40 MHz is more stable)
 -   **Rotation**: Upside-down for cube display
 
 ### Pin wiring

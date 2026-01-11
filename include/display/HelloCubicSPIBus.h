@@ -24,6 +24,8 @@ class HelloCubicSPIBus : public Arduino_DataBus {
     void beginWrite() override;
     void endWrite() override;
 
+    virtual ~HelloCubicSPIBus() {}
+
     void writeCommand(uint8_t c) override { _spi.writeCommand(c); }
     void writeCommand16(uint16_t c) override { _spi.writeCommand16(c); }
     void writeCommandBytes(uint8_t* data, uint32_t len) override { _spi.writeCommandBytes(data, len); }

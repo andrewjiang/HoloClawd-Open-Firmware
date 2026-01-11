@@ -36,13 +36,13 @@ void setup() {
         Logger::info("Configuration loaded successfully");
     }
 
-    wifiManager = new WiFiManager(configManager.getSSID(), configManager.getPassword(), AP_SSID, AP_PASSWORD);
-    wifiManager->begin();
-
     DisplayManager::begin();
     if (DisplayManager::isReady()) {
         DisplayManager::drawStartup();
     }
+
+    wifiManager = new WiFiManager(configManager.getSSID(), configManager.getPassword(), AP_SSID, AP_PASSWORD);
+    wifiManager->begin();
 }
 
 void loop() {

@@ -14,7 +14,7 @@
   "lcd_dc_cmd_high": false,
   "lcd_spi_mode": 0,
   "lcd_keep_cs_asserted": true,
-  "lcd_spi_hz": 80000000,
+  "lcd_spi_hz": 40000000,
   "lcd_backlight_gpio": 5,
   "lcd_backlight_active_low": true
 }

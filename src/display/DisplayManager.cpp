@@ -1,6 +1,7 @@
 #include <SPI.h>
 #include <Logger.h>
 
+#include "project_version.h"
 #include "display/DisplayManager.h"
 #include "display/HelloCubicSPIBus.h"
 
@@ -17,7 +18,7 @@ static constexpr int8_t LCD_RST_GPIO = 15;
 static constexpr bool LCD_CS_ACTIVE_HIGH = true;
 static constexpr bool LCD_DC_CMD_HIGH = false;
 static constexpr uint8_t LCD_SPI_MODE = 0;
-static constexpr uint32_t LCD_SPI_HZ = 80000000;
+static constexpr uint32_t LCD_SPI_HZ = 40000000;
 static constexpr int8_t LCD_BACKLIGHT_GPIO = 5;
 static constexpr bool LCD_BACKLIGHT_ACTIVE_LOW = true;
 static Arduino_DataBus* g_lcdBus = nullptr;
@@ -108,6 +109,8 @@ static constexpr uint8_t ST7789_ADDR_END_LOW = 0xEF;
  */
 static inline void lcdBacklightOn() {
     if (LCD_BACKLIGHT_GPIO < 0) {
+        Logger::warn("No backlight GPIO defined", "DisplayManager");
+
         return;
     }
 
@@ -122,6 +125,8 @@ static inline void lcdBacklightOn() {
  */
 static inline void ST7789_WriteCommand(uint8_t cmd) {
     if (g_lcdBus == nullptr) {
+        Logger::error("No data bus for LCD", "DisplayManager");
+
         return;
     }
 
@@ -135,6 +140,8 @@ static inline void ST7789_WriteCommand(uint8_t cmd) {
  */
 static inline void ST7789_WriteData(uint8_t data) {
     if (g_lcdBus == nullptr) {
+        Logger::error("No data bus for LCD", "DisplayManager");
+
         return;
     };
 
@@ -168,6 +175,8 @@ static inline void ST7789_WriteData(uint8_t data) {
  */
 static void lcdRunVendorInit() {
     if (g_lcdBus == nullptr) {
+        Logger::error("No data bus for LCD", "DisplayManager");
+
         return;
     };
 
@@ -291,6 +300,7 @@ static void lcdRunVendorInit() {
  */
 static void lcdHardReset() {
     if (LCD_RST_GPIO < 0) {
+        Logger::warn("No reset GPIO defined", "DisplayManager");
         return;
     }
 
@@ -301,24 +311,6 @@ static void lcdHardReset() {
     delay(LCD_HARDWARE_RESET_DELAY_MS);
     digitalWrite((uint8_t)LCD_RST_GPIO, HIGH);
     delay(LCD_HARDWARE_RESET_DELAY_MS);
-}
-
-/**
- * @brief Shutdown the display and free allocated resources
- *
- * @return void
- */
-static void lcdShutdown() {
-    g_lcdReady = false;
-    g_lcdInitializing = false;
-    if (g_lcd != nullptr) {
-        delete static_cast<Arduino_ST7789*>(g_lcd);
-        g_lcd = nullptr;
-    }
-    if (g_lcdBus != nullptr) {
-        delete static_cast<HelloCubicSPIBus*>(g_lcdBus);
-        g_lcdBus = nullptr;
-    }
 }
 
 /**
@@ -349,6 +341,8 @@ static void lcdEnsureInit() {
         delete static_cast<HelloCubicSPIBus*>(g_lcdBus);
         g_lcdBus = nullptr;
     }
+
+    SPI.begin();
 
     g_lcdBus =
         new HelloCubicSPIBus(LCD_DC_GPIO, LCD_CS_GPIO, LCD_CS_ACTIVE_HIGH, (int32_t)LCD_SPI_HZ, (int8_t)LCD_SPI_MODE);
@@ -388,6 +382,8 @@ static void lcdEnsureInit() {
  */
 static void lcdPushLine(std::vector<String>& out, String& line, int maxLines, int maxSlots) {
     if ((int)out.size() >= maxLines || (int)out.size() >= maxSlots) {
+        Logger::warn("Max lines or slots reached", "DisplayManager");
+
         return;
     }
     out.push_back(line);
@@ -402,6 +398,8 @@ static void lcdPushLine(std::vector<String>& out, String& line, int maxLines, in
 static void lcdAppendWord(std::vector<String>& out, String& line, String& word, int maxCharsPerLine, int maxLines,
                           int maxSlots) {
     if (word.length() == 0U) {
+        Logger::warn("No word to append", "DisplayManager");
+
         return;
     }
 
@@ -410,17 +408,22 @@ static void lcdAppendWord(std::vector<String>& out, String& line, String& word, 
             lcdPushLine(out, line, maxLines, maxSlots);
             if ((int)out.size() >= maxLines || (int)out.size() >= maxSlots) {
                 word = "";
+                Logger::warn("Max lines or slots reached", "DisplayManager");
+
                 return;
             }
         }
+
         line = word;
         word = "";
+
         return;
     }
 
     if (line.length() == 0U) {
         line = word;
         word = "";
+
         return;
     }
 
@@ -428,6 +431,7 @@ static void lcdAppendWord(std::vector<String>& out, String& line, String& word, 
         line += ' ';
         line += word;
         word = "";
+
         return;
     }
 
@@ -464,7 +468,10 @@ static auto lcdWrapText(int16_t startX, int16_t startY, const String& text, uint
 
     const int maxCharsPerLine = (screenW - startX) / charW;
     const int maxLines = (screenH - startY) / charH;
+
     if (maxCharsPerLine <= 0 || maxLines <= 0) {
+        Logger::warn("No space for text", "DisplayManager");
+
         return {String()};
     }
 
@@ -520,20 +527,6 @@ static auto lcdWrapText(int16_t startX, int16_t startY, const String& text, uint
  */
 static void lcdDrawTextWrapped(int16_t startX, int16_t startY, const String& text, uint8_t textSize, uint16_t fgColor,
                                uint16_t bgColor, bool clearBg) {
-    if (!LCD_ENABLE) {
-        return;
-    }
-
-    if (!g_lcdReady) {
-        if (g_lcdInitializing) {
-            return;
-        }
-        lcdEnsureInit();
-    }
-    if (!g_lcdReady || g_lcd == nullptr) {
-        return;
-    }
-
     const auto screenW = static_cast<int16_t>(g_lcd->width());
     const auto screenH = static_cast<int16_t>(g_lcd->height());
 
@@ -543,13 +536,19 @@ static void lcdDrawTextWrapped(int16_t startX, int16_t startY, const String& tex
     if (startY < 0) {
         startY = 0;
     }
+
     if (startX >= screenW || startY >= screenH) {
+        Logger::warn("Text start position out of bounds", "DisplayManager");
+
         return;
     }
 
     const auto charW = static_cast<int16_t>(6 * textSize);
     const auto charH = static_cast<int16_t>(8 * textSize);
+
     if (charW <= 0 || charH <= 0) {
+        Logger::warn("Invalid character dimensions", "DisplayManager");
+
         return;
     }
 
@@ -592,28 +591,40 @@ auto DisplayManager::isReady() -> bool { return g_lcdReady && g_lcd != nullptr &
  */
 auto DisplayManager::drawStartup() -> void {
     if (!DisplayManager::isReady()) {
+        Logger::warn("Display not ready", "DisplayManager");
+
         return;
     }
+
+    int constexpr rgbDelayMs = 1000;
+
+    g_lcd->fillScreen(LCD_RED);
+    delay(rgbDelayMs);
+    g_lcd->fillScreen(LCD_GREEN);
+    delay(rgbDelayMs);
+    g_lcd->fillScreen(LCD_BLUE);
+    delay(rgbDelayMs);
+
     g_lcd->fillScreen(LCD_BLACK);
-    g_lcd->setTextSize(2);
-    g_lcd->setTextColor(LCD_WHITE, LCD_BLACK);
-    g_lcd->setCursor(DISPLAY_PADDING, DISPLAY_PADDING);
-    DisplayManager::drawTextWrapped(DISPLAY_PADDING, DISPLAY_PADDING, "HelloCubic Lite Open", 2, LCD_WHITE, LCD_BLACK,
+
+    int constexpr titleY = 30;
+    int constexpr infoY = 100;
+    int constexpr fontSize = 2;
+
+    DisplayManager::drawTextWrapped(DISPLAY_PADDING, titleY, "HelloCubic Lite Open Firmware", fontSize, LCD_WHITE,
+                                    LCD_BLACK, false);
+    DisplayManager::drawTextWrapped(DISPLAY_PADDING, infoY, String(PROJECT_VER_STR), fontSize, LCD_WHITE, LCD_BLACK,
                                     false);
 
-    String info =
-        "CPU freq: " + String(ESP.getCpuFreqMHz()) + " MHz\n";  // NOLINT(readability-static-accessed-through-instance)
-    info += "Flash chip ID: 0x" +
-            String(ESP.getFlashChipId(), HEX);  // NOLINT(readability-static-accessed-through-instance)
-    DisplayManager::drawTextWrapped(DISPLAY_PADDING, DISPLAY_INFO_Y, info, 2, LCD_WHITE, LCD_BLACK, true);
+    const int16_t box = 40;
+    const int16_t gap = 20;
+    const int16_t boxY = 200;
 
-    const int16_t box = 18;
-    const int16_t gap = 8;
-    const int16_t boxY = 150;
-    g_lcd->fillRect(DISPLAY_PADDING, boxY, (int16_t)(box * 3 + gap * 2), box, LCD_BLACK);
     g_lcd->fillRect(DISPLAY_PADDING, boxY, box, box, LCD_RED);
     g_lcd->fillRect((int16_t)(DISPLAY_PADDING + box + gap), boxY, box, box, LCD_GREEN);
     g_lcd->fillRect((int16_t)(DISPLAY_PADDING + (box + gap) * 2), boxY, box, box, LCD_BLUE);
+
+    yield();
 
     Logger::info("Startup screen drawn", "DisplayManager");
 }
