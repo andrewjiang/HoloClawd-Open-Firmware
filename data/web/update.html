@@ -3,80 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Update - Hellocubic</title>
+    <title>Firmware / FS Update</title>
     <link rel="stylesheet" href="./css/pico.min.css" />
     <link rel="stylesheet" href="./css/style.css" />
+    <script src="./js/alpinejs.min.js" defer></script>
+    <script src="./js/main.js"></script>
   </head>
   <body>
     <main class="container">
-      <header>
-        <h1>Firmware / FS Update</h1>
-        <div x-data="themeSwitcher()">
-          <button
-            @click="toggleTheme"
-            aria-label="Switch theme"
-            class="theme-switch-btn"
-          >
-            <span
-              class="theme-icon"
-              style="
-                vertical-align: middle;
-                display: inline-block;
-                position: relative;
-                width: 24px;
-                height: 24px;
-              "
-            >
-              <svg
-                id="theme-svg-icon"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <circle
-                  id="theme-main-circle"
-                  cx="12"
-                  cy="12"
-                  r="6.2"
-                  fill="currentColor"
-                  stroke="none"
-                />
-                <g id="theme-sun-rays" fill="currentColor" stroke="none">
-                  <circle cx="12" cy="2.5" r="1.5" />
-                  <circle cx="12" cy="21.5" r="1.5" />
-                  <circle cx="2.5" cy="12" r="1.5" />
-                  <circle cx="21.5" cy="12" r="1.5" />
-                  <circle cx="5.1" cy="5.1" r="1.5" />
-                  <circle cx="18.9" cy="18.9" r="1.5" />
-                  <circle cx="5.1" cy="18.9" r="1.5" />
-                  <circle cx="18.9" cy="5.1" r="1.5" />
-                </g>
-                <mask id="moon-mask">
-                  <rect x="0" y="0" width="24" height="24" fill="white" />
-                  <circle id="moon-cut" cx="16" cy="12" r="8" fill="black" />
-                </mask>
-                <circle
-                  id="theme-moon"
-                  cx="12"
-                  cy="12"
-                  r="8"
-                  fill="currentColor"
-                  stroke="none"
-                  mask="url(#moon-mask)"
-                  style="display: none"
-                />
-              </svg>
-            </span>
-          </button>
-        </div>
-        <div id="theme-waterdrop-overlay"></div>
-        <a href="./index.html" style="margin-left: 2em">← Back to Home</a>
-      </header>
+      <header id="header-placeholder"></header>
+      <a href="./index.html" style="margin-left: 2em">← Back to Home</a>
       <section>
         <div x-data="otaUploadHandler()" style="margin-top: 2em">
           <h2>Update firmware or FS</h2>
@@ -94,18 +30,8 @@
           <p x-text="uploadMessage"></p>
         </div>
       </section>
-      <footer>
-        <small>
-          <a
-            href="https://github.com/Times-Z/Hellocubic-Lite-OpenFirmware"
-            target="_blank"
-          >
-            Hellocubic Open Firmware
-          </a>
-        </small>
-      </footer>
+
+      <footer id="footer-placeholder"></footer>
     </main>
-    <script src="./js/alpinejs.min.js" defer></script>
-    <script src="./js/main.js"></script>
   </body>
 </html>
