@@ -30,17 +30,14 @@
 -   [Support](#support)
 
 <div align="center">
-   <img src=".github/assets/01-showcase.jpg" alt="HelloCubic Lite Showcase" width="320" />
-   <img src=".github/assets/04-gif_display.gif" alt="GIF Display Demo" width="320" />
+   <img src=".github/assets/01-showcase.jpg" alt="HelloCubic Lite Showcase" width="1000" />
    <br>
-    <em>open firmware showcase</em>
+    <em>open firmware showcase working on both hellocubic and smalltv</em>
 </div>
 
 ## Important information
 
 **Warning: I am not responsible for bricking your devices. Flash at your own risk**
-
-**A basic firmware based on Arduino is available in [ota_secure](ota_secure/readme.md) to check if your hardware is compatible**
 
 **I recommend making a complete [backup](backup/readme.md) of your flash before doing anything**
 **I've upload my factory backup (version 7.0.17 for cube and 9.0.40 for small tv); it might be useful. Backup tested and approved, it works**
@@ -179,10 +176,6 @@ That’s the project, at least
 ## PlateformIO Firmware
 
 This is the "real" firmware I want to improve, with clean and reliable code
-
-The ota_secure one is just a POC of working screen and wifi to ensure the project is possible, crappy code & co
-
-WIP
 
 ### Stack
 
