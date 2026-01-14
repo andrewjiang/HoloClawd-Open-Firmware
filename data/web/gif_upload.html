@@ -42,7 +42,7 @@
                 <template x-for="gif in gifs" :key="gif.name">
                   <li>
                     <span x-text="gif.name"></span> (<span
-                      x-text="$root.humanFileSize(gif.size)"
+                      x-text="humanFileSize(gif.size)"
                     ></span
                     >)
                   </li>

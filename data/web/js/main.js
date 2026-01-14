@@ -12,6 +12,7 @@ function humanFileSize(bytes) {
 
 function gifUploadHandler() {
   return {
+    humanFileSize,
     uploading: false,
     uploadMessage: "",
     gifs: [],
@@ -39,14 +40,14 @@ function gifUploadHandler() {
       const file = this.$refs.fileInput.files[0];
 
       if (!file || file.type !== "image/gif") {
-        this.uploadMessage = "Please select a GIF file.";
+        this.uploadMessage = "Please select a GIF file";
         this.uploading = false;
 
         return;
       }
 
       const formData = new FormData();
-      formData.append("file", file, file.name);
+      formData.append("upload", file, file.name);
 
       try {
         const response = await fetch("/api/v1/gif", {
@@ -60,7 +61,7 @@ function gifUploadHandler() {
           this.uploadMessage = "GIF uploaded: " + result.filename;
           await this.fetchGifList();
         } else {
-          this.uploadMessage = result.message || "Upload failed.";
+          this.uploadMessage = result.message || "Upload failed";
         }
       } catch (e) {
         this.uploadMessage = "Error uploading GIF: " + e;
