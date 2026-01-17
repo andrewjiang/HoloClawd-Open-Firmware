@@ -12,22 +12,23 @@
 
 ## Table of Contents
 
--   [Important information](#important-information)
--   [Teardown](#teardown)
--   [Screen hardware configuration](#screen-hardware-configuration)
-    -   [Display specifications](#display-specifications)
-    -   [Pin wiring](#pin-wiring)
-    -   [Important configuration details](#important-configuration-details)
--   [How the screen works](#how-the-screen-works)
-    -   [Initialization sequence](#initialization-sequence)
-    -   [Communication protocol](#communication-protocol)
-    -   [Drawing to the screen](#drawing-to-the-screen)
-    -   [Color format](#color-format)
-    -   [Performance optimizations](#performance-optimizations)
--   [What's next ?](#whats-next)
--   [The firmware](#plateformio-firmware)
--   [License](#license)
--   [Support](#support)
+- [Important information](#important-information)
+- [Teardown](#teardown)
+- [Screen hardware configuration](#screen-hardware-configuration)
+    - [Display specifications](#display-specifications)
+    - [Pin wiring](#pin-wiring)
+    - [Important configuration details](#important-configuration-details)
+- [How the screen works](#how-the-screen-works)
+    - [Initialization sequence](#initialization-sequence)
+    - [Communication protocol](#communication-protocol)
+    - [Drawing to the screen](#drawing-to-the-screen)
+    - [Color format](#color-format)
+    - [Performance optimizations](#performance-optimizations)
+- [What's next ?](#whats-next)
+- [The firmware](#plateformio-firmware)
+- [Install guide](#installation-guide)
+- [License](#license)
+- [Support](#support)
 
 <div align="center">
    <img src=".github/assets/01-showcase.jpg" alt="HelloCubic Lite Showcase" width="1000" />
@@ -49,9 +50,9 @@
 
 > For the Smalltv : https://a.aliexpress.com/_EzEZgvi
 
--   **MCU**: ESP8266
--   **LCD controller**: ST7789 (RGB565)
--   **Case**: 3d printed
+- **MCU**: ESP8266
+- **LCD controller**: ST7789 (RGB565)
+- **Case**: 3d printed
 
 <div align="center">
    <img src=".github/assets/02-disassembly-cube.jpg" alt="Cube Disassembly" width="1000" />
@@ -64,12 +65,12 @@
 
 ### Display specifications
 
--   **Controller**: ST7789
--   **Resolution**: 240x240 pixels
--   **Color Format**: RGB565 (16-bit color)
--   **Interface**: SPI (Serial Peripheral Interface)
--   **SPI Speed**: up to 80 MHz (40 MHz is more stable)
--   **Rotation**: Upside-down for cube display, normal for the small tv
+- **Controller**: ST7789
+- **Resolution**: 240x240 pixels
+- **Color Format**: RGB565 (16-bit color)
+- **Interface**: SPI (Serial Peripheral Interface)
+- **SPI Speed**: up to 80 MHz (40 MHz is more stable)
+- **Rotation**: Upside-down for cube display, normal for the small tv
 
 ### Pin wiring
 
@@ -144,25 +145,25 @@ The firmware uses the Arduino_GFX library with a custom ESP8266SPIWithCustomCS b
 
 Colors are encoded in RGB565 format (16-bit):
 
--   Red: 5 bits (bits 15-11)
--   Green: 6 bits (bits 10-5)
--   Blue: 5 bits (bits 4-0)
+- Red: 5 bits (bits 15-11)
+- Green: 6 bits (bits 10-5)
+- Blue: 5 bits (bits 4-0)
 
 Example colors:
 
--   Black: 0x0000
--   White: 0xFFFF
--   Red: 0xF800
--   Green: 0x07E0
--   Blue: 0x001F
+- Black: 0x0000
+- White: 0xFFFF
+- Red: 0xF800
+- Green: 0x07E0
+- Blue: 0x001F
 
 ### Performance optimizations
 
--   **High SPI speed**: 80 MHz clock for fast data transfer
--   **CS kept asserted**: During continuous operations, CS stays HIGH to reduce overhead
--   **Hardware SPI**: Uses ESP8266's hardware SPI peripheral for efficient transfers
--   **Batch writes**: Multiple operations are batched between beginWrite/endWrite calls
--   **Direct frame buffer writes**: GIF frames are streamed directly to avoid intermediate buffering
+- **High SPI speed**: 80 MHz clock for fast data transfer
+- **CS kept asserted**: During continuous operations, CS stays HIGH to reduce overhead
+- **Hardware SPI**: Uses ESP8266's hardware SPI peripheral for efficient transfers
+- **Batch writes**: Multiple operations are batched between beginWrite/endWrite calls
+- **Direct frame buffer writes**: GIF frames are streamed directly to avoid intermediate buffering
 
 ## What's next ?
 
@@ -189,34 +190,83 @@ This is the "real" firmware I want to improve, with clean and reliable code
 | Graphics display  | Arduino_GFX Library                                                      | ST7789 display management (SPI, RGB565) |
 | Web UI (frontend) | [Pico.css](https://picocss.com/docs), [Alpine.js](https://alpinejs.dev/) | Minimalist web user interface           |
 
-### Upload with OTA
+## Installation Guide
 
-For OTA uploading we need to do that in 2 steps :
+To use the open-source firmware on your compatible GeekMagic device, follow these steps:
 
-#### Upload firmware
-
-First step is to build and upload firmware on top off the original firmware :
-
--   Just go on http://{your_geekmagic_ip}/update and upload the firmware
--   Now the cube is restarting with the default seeting of my firmware, but without the FS up to date with configuration (wifi, web interface etc), now you can connect to the wifi, `GeekMagic` SSID with `$str0ngPa$$w0rd` and upload the littlefs.bin into http://192.168.4.1/legacyupdate to have the full configuration
-
-### Build and upload code
+### 1. Clone the repository
 
 ```bash
-pio run --target upload
+git clone https://github.com/Times-Z/GeekMagic-Open-Firmware.git
 ```
 
-### Build and upload FS
+### 2. Configure the JSON file
 
 ```bash
-pio run --target uploadfs
+cp data/config-{hellocubic|smalltv}.example data/config.json
 ```
 
-### Monitor
+You can edit this JSON file to configure your firmware, for example by modifying `wifi_ssid` and `wifi_password` so that your device connects to your network
+
+### 3. Build the firmware and filesystem
 
 ```bash
-pio device monitor
+pio run --target buildfs
+
+# or using devcontainer aliases
+
+build && buildfs
 ```
+
+The generated files will be located in:
+
+```
+.pio/build/esp12e/
+```
+
+### 4. Flash the firmware
+
+There are two possible flashing methods:
+
+- **OTA (Over-The-Air)** – no prerequisites
+- **USB** – requires a USB-to-TTL converter to connect to the ESP
+
+---
+
+### OTA Flashing
+
+Flashing is done in two steps
+
+#### Step 1: Flash the firmware
+
+Go to:
+
+```
+http://{your_geekmagic_ip}/update
+```
+
+This is the update endpoint of the original firmware. Upload the `firmware.bin` file
+
+Once this step is complete, the device will reboot. Depending on the model, the screen orientation may be correct or not — this is normal
+
+At this point, only the firmware has been flashed. The filesystem (configuration, web app) still needs to be flashed
+
+#### Step 2: Flash the filesystem
+
+The firmware will create a Wi‑Fi access point with the following credentials:
+
+- **SSID:** `GeekMagic`
+- **Password:** `$str0ngPa$$w0rd`
+
+Connect to this access point and go to:
+
+```
+http://192.168.4.1/legacyupdate
+```
+
+From there, select and flash the filesystem using the `littlefs.bin` file
+
+Once the device reboots, the setup is complete!
 
 ## License
 
@@ -226,7 +276,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ## Support
 
--   Found a bug or question ? [Open an issue](https://github.com/Times-Z/GeekMagic-Open-Firmware/issues)
+- Found a bug or question ? [Open an issue](https://github.com/Times-Z/GeekMagic-Open-Firmware/issues)
 
 ---
 
