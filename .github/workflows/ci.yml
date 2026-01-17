@@ -148,7 +148,7 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ghcr.io/${{ github.repository_owner }}/devcontainer:latest
-            ghcr.io/${{ github.repository_owner }}/devcontainer:${{ github.sha }}
+            ghcr.io/times-z/devcontainer:latest
+            ghcr.io/times-z/devcontainer:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
