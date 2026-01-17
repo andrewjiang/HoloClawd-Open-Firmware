@@ -211,6 +211,8 @@ You can edit this JSON file to configure your firmware, for example by modifying
 
 ### 3. Build the firmware and filesystem
 
+If you dont use the devcontainer, make sure you have install and setup [PlateformIO](https://docs.platformio.org/en/latest/core/installation/methods/installer-script.html)
+
 ```bash
 pio run && pio run --target buildfs
 
