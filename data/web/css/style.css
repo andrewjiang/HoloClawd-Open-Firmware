@@ -12,7 +12,9 @@
 .theme-switch-btn svg {
   display: block;
   stroke: #222;
-  transition: opacity 0.3s, transform 0.5s;
+  transition:
+    opacity 0.3s,
+    transform 0.5s;
   opacity: 1;
 }
 
@@ -141,4 +143,89 @@ details.dropdown ul li a {
 
 details.dropdown ul li a:hover {
   background: #eee;
+}
+
+.wifi-back-link {
+  margin-left: 2em;
+}
+.wifi-section {
+  margin-top: 2rem;
+}
+.wifi-connect {
+  margin-top: 1.5rem;
+}
+.password-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.action-row {
+  margin-top: 0.5rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.scan-table-container {
+  margin-top: 1em;
+}
+.wifi-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.wifi-table th,
+.wifi-table td {
+  padding: 0.4rem;
+  vertical-align: middle;
+  border-bottom: 1px solid #ddd;
+}
+.wifi-table th {
+  text-align: left;
+}
+.ssid-cell {
+  max-width: 260px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.signal-cell {
+  color: #666;
+}
+.signal-cell .bars {
+  font-family: monospace;
+  color: #666;
+  margin-left: 0.5rem;
+}
+.no-networks {
+  padding: 0.6rem;
+}
+.scan-btn {
+  margin-right: 0.6rem;
+}
+
+.eye-btn {
+  background: none;
+  border: none;
+  padding: 0.15rem;
+  cursor: pointer;
+  color: inherit;
+}
+.eye-btn svg {
+  display: block;
+}
+.eye-btn {
+  background: none;
+  border: none;
+  padding: 0.15rem;
+  cursor: pointer;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+.eye-btn svg {
+  display: block;
+  overflow: visible;
+  width: 18px;
+  height: 18px;
 }

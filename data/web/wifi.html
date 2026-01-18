@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WiFi management</title>
+    <link rel="stylesheet" href="./css/pico.min.css" />
+    <link rel="stylesheet" href="./css/style.css" />
+    <script src="./js/alpinejs.min.js" defer></script>
+    <script src="./js/main.js"></script>
+  </head>
+  <body>
+    <main class="container">
+      <header id="header-placeholder"></header>
+
+      <a href="./index.html" class="wifi-back-link">← Back to Home</a>
+
+      <section x-data="wifiHandler()" class="wifi-section">
+        <h2>WiFi Configuration</h2>
+
+        <div class="wifi-connect">
+          <h3>Connect</h3>
+          <form @submit.prevent="connect()">
+            <label for="ssid">SSID</label>
+            <input
+              id="ssid"
+              x-model="ssid"
+              name="ssid"
+              type="text"
+              autocomplete="off"
+            />
+            <label for="password">Password</label>
+            <div class="password-row">
+              <input
+                id="password"
+                x-model="password"
+                name="password"
+                :type="showPassword ? 'text' : 'password'"
+              />
+              <button
+                type="button"
+                @click="showPassword = !showPassword"
+                aria-label="Toggle password visibility"
+                class="eye-btn"
+              >
+                <svg
+                  x-show="!showPassword"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M2.5 12c1.8-4 5.5-7 9.5-7 4 0 7.7 3 9.5 7-1.8 4-5.5 7-9.5 7-4 0-7.7-3-9.5-7z"
+                  />
+                  <path d="M3 3l18 18" />
+                </svg>
+                <svg
+                  x-show="showPassword"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </button>
+            </div>
+            <div class="action-row">
+              <button type="submit" x-bind:disabled="connecting">
+                Save & Connect
+              </button>
+              <button type="button" @click="forget()">Forget</button>
+            </div>
+          </form>
+          <p x-text="statusMsg"></p>
+        </div>
+
+        <div>
+          <button class="scan-btn" @click="scan()" x-bind:disabled="scanning">
+            Scan networks
+          </button>
+          <span x-show="scanning">Scanning...</span>
+          <div class="scan-table-container">
+            <table class="wifi-table">
+              <thead>
+                <tr>
+                  <th class="col-ssid">SSID</th>
+                  <th class="col-signal">Signal</th>
+                  <th class="col-action"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="net in networks" :key="net.ssid">
+                  <tr>
+                    <td class="ssid-cell">
+                      <strong x-text="net.ssid"></strong>
+                    </td>
+                    <td class="signal-cell">
+                      <span x-text="net.rssiDisplay"></span>
+                      <span class="bars" x-text="net.bars"></span>
+                    </td>
+                    <td class="action-cell">
+                      <button @click="selectNetwork(net)">Use</button>
+                    </td>
+                  </tr>
+                </template>
+                <tr x-show="networks.length === 0 && !scanning">
+                  <td colspan="3" class="no-networks">
+                    <em>No networks found</em>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <footer id="footer-placeholder"></footer>
+    </main>
+  </body>
+</html>

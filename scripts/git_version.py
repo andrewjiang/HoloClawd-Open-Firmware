@@ -14,6 +14,7 @@ def get_git_version(project_dir):
                 "--always",
                 "--dirty=-dev",
                 "--broken=-dev",
+                "--abbrev=2",
             ],
             cwd=project_dir,
             stderr=subprocess.DEVNULL,

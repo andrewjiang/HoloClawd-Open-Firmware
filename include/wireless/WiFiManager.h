@@ -3,6 +3,7 @@
 
 #include <ESP8266WiFi.h>
 #include <Arduino.h>
+#include <ArduinoJson.h>
 
 class WiFiManager {
    public:
@@ -12,6 +13,10 @@ class WiFiManager {
     bool startAccessPointMode();
     bool isApMode() const;
     IPAddress getIP() const;
+    static void scanNetworks(JsonArray& out);
+    bool connectToNetwork(const char* ssid, const char* pass, uint32_t timeoutMs = 10000);
+    static bool isConnected();
+    static String getConnectedSSID();
 
    private:
     const char* _staSsid;

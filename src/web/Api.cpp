@@ -8,10 +8,20 @@
 #include "web/Api.h"
 #include "display/DisplayManager.h"
 
+#include "config/ConfigManager.h"
+#include "wireless/WiFiManager.h"
+
+extern ConfigManager configManager;
+extern WiFiManager* wifiManager;
+
 ESP8266HTTPUpdateServer httpUpdater;
 static bool otaError = false;
 static size_t otaSize = 0;
 static String otaStatus;
+
+static constexpr size_t JSON_DOC_WIFI_SCAN_SIZE = 4096;
+static constexpr size_t JSON_DOC_SMALL_SIZE = 1024;
+static constexpr int WIFI_CONNECT_TIMEOUT_MS = 15000;
 
 /**
  * @brief Register API endpoints for the webserver
@@ -21,6 +31,10 @@ static String otaStatus;
  */
 void registerApiEndpoints(Webserver* webserver) {
     Logger::info("Registering API endpoints", "API");
+
+    webserver->raw().on("/api/v1/wifi/scan", HTTP_GET, [webserver]() { handleWifiScan(webserver); });
+    webserver->raw().on("/api/v1/wifi/connect", HTTP_POST, [webserver]() { handleWifiConnect(webserver); });
+    webserver->raw().on("/api/v1/wifi/status", HTTP_GET, [webserver]() { handleWifiStatus(webserver); });
 
     webserver->raw().on("/api/v1/reboot", HTTP_POST, [webserver]() { handleReboot(webserver); });
 
@@ -463,6 +477,104 @@ void handleStopGif(Webserver* webserver) {
     const bool stopped = DisplayManager::stopGif();
 
     resp["status"] = stopped ? "stopped" : "error";
+
+    String jsonOut;
+    serializeJson(resp, jsonOut);
+
+    webserver->raw().send(HTTP_CODE_OK, "application/json", jsonOut);
+}
+
+/**
+ * @brief Handle WiFi scan
+ */
+void handleWifiScan(Webserver* webserver) {
+    JsonDocument doc;
+    JsonArray networks = doc["networks"].to<JsonArray>();
+
+    if (wifiManager != nullptr) {
+        WiFiManager::scanNetworks(networks);
+    }
+
+    String out;
+    serializeJson(doc["networks"], out);
+    webserver->raw().send(HTTP_CODE_OK, "application/json", out);
+}
+
+/**
+ * @brief Handle WiFi connect request
+ */
+void handleWifiConnect(Webserver* webserver) {
+    String body = webserver->raw().arg("plain");
+    JsonDocument doc;
+    DeserializationError err = deserializeJson(doc, body);
+
+    if (err) {
+        JsonDocument resp;
+
+        resp["status"] = "error";
+        resp["message"] = "invalid json";
+
+        String jsonOut;
+        serializeJson(resp, jsonOut);
+        webserver->raw().send(HTTP_CODE_INTERNAL_ERROR, "application/json", jsonOut);
+
+        return;
+    }
+
+    const char* ssid = doc["ssid"] | "";
+    const char* password = doc["password"] | "";
+
+    if (strlen(ssid) == 0) {
+        JsonDocument resp;
+
+        resp["status"] = "error";
+        resp["message"] = "missing ssid";
+
+        String jsonOut;
+
+        serializeJson(resp, jsonOut);
+        webserver->raw().send(HTTP_CODE_INTERNAL_ERROR, "application/json", jsonOut);
+
+        return;
+    }
+
+    bool connectOk = false;
+    if (wifiManager != nullptr) {
+        connectOk = wifiManager->connectToNetwork(ssid, password, WIFI_CONNECT_TIMEOUT_MS);
+    }
+
+    JsonDocument resp;
+
+    resp["status"] = connectOk ? "connected" : "error";
+    resp["ssid"] = ssid;
+
+    if (connectOk) {
+        resp["ip"] = wifiManager->getIP().toString();
+        configManager.setWiFi(ssid, password);
+        configManager.save();
+    }
+
+    if (!connectOk) {
+        resp["message"] = "failed to connect";
+    }
+
+    String jsonOut;
+    serializeJson(resp, jsonOut);
+
+    webserver->raw().send(HTTP_CODE_OK, "application/json", jsonOut);
+}
+
+/**
+ * @brief WiFi status
+ */
+void handleWifiStatus(Webserver* webserver) {
+    JsonDocument resp;
+
+    bool connected = (wifiManager != nullptr) && WiFiManager::isConnected();
+
+    resp["connected"] = connected;
+    resp["ssid"] = connected ? WiFiManager::getConnectedSSID() : "";
+    resp["ip"] = connected ? wifiManager->getIP().toString() : "";
 
     String jsonOut;
     serializeJson(resp, jsonOut);

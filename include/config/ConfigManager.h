@@ -26,6 +26,8 @@ class ConfigManager {
    public:
     ConfigManager(const char* filename = "/config.json");
     bool load();
+    bool save();
+    void setWiFi(const char* newSsid, const char* newPassword);
     const char* getSSID() const;
     const char* getPassword() const;
     bool getLCDEnable() const;

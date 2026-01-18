@@ -83,6 +83,7 @@ void setup() {
     webserver->serveStatic("/index.html", "/web/index.html", "text/html");
     webserver->serveStatic("/update.html", "/web/update.html", "text/html");
     webserver->serveStatic("/gif_upload.html", "/web/gif_upload.html", "text/html");
+    webserver->serveStatic("/wifi.html", "/web/wifi.html", "text/html");
 
     webserver->serveStatic("/css/pico.min.css", "/web/css/pico.min.css", "text/css");
     webserver->serveStatic("/css/style.css", "/web/css/style.css", "text/css");

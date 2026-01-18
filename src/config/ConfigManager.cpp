@@ -187,3 +187,61 @@ auto ConfigManager::getLCDBacklightGpio() const -> int8_t { return lcd_backlight
  * @return true if the LCD backlight pin is active low false otherwise
  */
 auto ConfigManager::getLCDBacklightActiveLow() const -> bool { return lcd_backlight_active_low; }
+
+/**
+ * @brief Set WiFi credentials in memory
+ * @param newSsid The SSID
+ * @param newPassword The password
+ *
+ * @return void
+ */
+auto ConfigManager::setWiFi(const char* newSsid, const char* newPassword) -> void {
+    if (newSsid != nullptr) {
+        ssid = newSsid;
+    }
+    if (newPassword != nullptr) {
+        password = newPassword;
+    }
+}
+
+/**
+ * @brief Save the current configuration to the file
+ *
+ * @return true if the configuration was successfully saved false otherwise
+ */
+auto ConfigManager::save() -> bool {
+    if (!LittleFS.begin()) {
+        Logger::error("Failed to mount LittleFS", "ConfigManager");
+
+        return false;
+    }
+
+    File file = LittleFS.open(filename.c_str(), "w");
+
+    if (!file) {
+        Logger::error("Failed to open config file for writing", "ConfigManager");
+
+        return false;
+    }
+
+    JsonDocument doc;
+
+    doc["wifi_ssid"] = ssid.c_str();
+    doc["wifi_password"] = password.c_str();
+    doc["lcd_enable"] = lcd_enable;
+    doc["lcd_w"] = lcd_w;
+    doc["lcd_h"] = lcd_h;
+    doc["lcd_rotation"] = lcd_rotation;
+
+    if (serializeJson(doc, file) == 0) {
+        Logger::error("Failed to write config file", "ConfigManager");
+        file.close();
+
+        return false;
+    }
+
+    file.close();
+    Logger::info("Configuration saved", "ConfigManager");
+
+    return true;
+}

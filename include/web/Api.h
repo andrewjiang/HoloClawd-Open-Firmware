@@ -13,4 +13,8 @@ void handleListGifs(Webserver* webserver);
 void handlePlayGif(Webserver* webserver);
 void handleStopGif(Webserver* webserver);
 
+void handleWifiScan(Webserver* webserver);
+void handleWifiConnect(Webserver* webserver);
+void handleWifiStatus(Webserver* webserver);
+
 #endif  // API_H
