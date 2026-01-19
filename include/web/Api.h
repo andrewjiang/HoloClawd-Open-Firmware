@@ -17,4 +17,16 @@ void handleWifiScan(Webserver* webserver);
 void handleWifiConnect(Webserver* webserver);
 void handleWifiStatus(Webserver* webserver);
 
+// Drawing API endpoints
+void handleDrawClear(Webserver* webserver);
+void handleDrawText(Webserver* webserver);
+void handleDrawRect(Webserver* webserver);
+void handleDrawCircle(Webserver* webserver);
+void handleDrawLine(Webserver* webserver);
+void handleDrawPixel(Webserver* webserver);
+void handleDrawTriangle(Webserver* webserver);
+void handleDrawEllipse(Webserver* webserver);
+void handleDrawRoundRect(Webserver* webserver);
+void handleDrawBatch(Webserver* webserver);
+
 #endif  // API_H

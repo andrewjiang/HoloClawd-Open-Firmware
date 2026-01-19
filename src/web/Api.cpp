@@ -56,6 +56,18 @@ void registerApiEndpoints(Webserver* webserver) {
     webserver->raw().on("/api/v1/gif/stop", HTTP_POST, [webserver]() { handleStopGif(webserver); });
 
     webserver->raw().on("/api/v1/gif", HTTP_GET, [webserver]() { handleListGifs(webserver); });
+
+    // Drawing API endpoints
+    webserver->raw().on("/api/v1/draw/clear", HTTP_POST, [webserver]() { handleDrawClear(webserver); });
+    webserver->raw().on("/api/v1/draw/text", HTTP_POST, [webserver]() { handleDrawText(webserver); });
+    webserver->raw().on("/api/v1/draw/rect", HTTP_POST, [webserver]() { handleDrawRect(webserver); });
+    webserver->raw().on("/api/v1/draw/circle", HTTP_POST, [webserver]() { handleDrawCircle(webserver); });
+    webserver->raw().on("/api/v1/draw/line", HTTP_POST, [webserver]() { handleDrawLine(webserver); });
+    webserver->raw().on("/api/v1/draw/pixel", HTTP_POST, [webserver]() { handleDrawPixel(webserver); });
+    webserver->raw().on("/api/v1/draw/triangle", HTTP_POST, [webserver]() { handleDrawTriangle(webserver); });
+    webserver->raw().on("/api/v1/draw/ellipse", HTTP_POST, [webserver]() { handleDrawEllipse(webserver); });
+    webserver->raw().on("/api/v1/draw/roundrect", HTTP_POST, [webserver]() { handleDrawRoundRect(webserver); });
+    webserver->raw().on("/api/v1/draw/batch", HTTP_POST, [webserver]() { handleDrawBatch(webserver); });
 }
 
 /**
@@ -579,5 +591,520 @@ void handleWifiStatus(Webserver* webserver) {
     String jsonOut;
     serializeJson(resp, jsonOut);
 
+    webserver->raw().send(HTTP_CODE_OK, "application/json", jsonOut);
+}
+
+// ============================================================================
+// Drawing API Handlers
+// ============================================================================
+
+/**
+ * @brief Clear the screen
+ * POST /api/v1/draw/clear
+ * Body: {"color": "#000000"} (optional, defaults to black)
+ */
+void handleDrawClear(Webserver* webserver) {
+    String body = webserver->raw().arg("plain");
+    JsonDocument doc;
+    uint16_t color = LCD_BLACK;
+
+    if (body.length() > 0) {
+        DeserializationError err = deserializeJson(doc, body);
+        if (!err && doc.containsKey("color")) {
+            color = DisplayManager::hexToRgb565(doc["color"].as<String>());
+        }
+    }
+
+    DisplayManager::fillScreen(color);
+
+    JsonDocument resp;
+    resp["status"] = "ok";
+
+    String jsonOut;
+    serializeJson(resp, jsonOut);
+    webserver->raw().send(HTTP_CODE_OK, "application/json", jsonOut);
+}
+
+/**
+ * @brief Draw text on screen
+ * POST /api/v1/draw/text
+ * Body: {"x": 10, "y": 10, "text": "Hello", "size": 2, "color": "#ffffff", "bg": "#000000"}
+ */
+void handleDrawText(Webserver* webserver) {
+    String body = webserver->raw().arg("plain");
+    JsonDocument doc;
+    DeserializationError err = deserializeJson(doc, body);
+
+    if (err) {
+        JsonDocument resp;
+        resp["status"] = "error";
+        resp["message"] = "invalid json";
+        String jsonOut;
+        serializeJson(resp, jsonOut);
+        webserver->raw().send(HTTP_CODE_INTERNAL_ERROR, "application/json", jsonOut);
+        return;
+    }
+
+    int16_t x = doc["x"] | 0;
+    int16_t y = doc["y"] | 0;
+    String text = doc["text"] | "";
+    uint8_t size = doc["size"] | 2;
+    uint16_t fgColor = LCD_WHITE;
+    uint16_t bgColor = LCD_BLACK;
+
+    if (doc.containsKey("color")) {
+        fgColor = DisplayManager::hexToRgb565(doc["color"].as<String>());
+    }
+    if (doc.containsKey("bg")) {
+        bgColor = DisplayManager::hexToRgb565(doc["bg"].as<String>());
+    }
+
+    bool clearBg = doc["clear"] | false;
+    DisplayManager::drawTextWrapped(x, y, text, size, fgColor, bgColor, clearBg);
+
+    JsonDocument resp;
+    resp["status"] = "ok";
+
+    String jsonOut;
+    serializeJson(resp, jsonOut);
+    webserver->raw().send(HTTP_CODE_OK, "application/json", jsonOut);
+}
+
+/**
+ * @brief Draw rectangle
+ * POST /api/v1/draw/rect
+ * Body: {"x": 10, "y": 10, "w": 50, "h": 50, "color": "#ff0000", "fill": true}
+ */
+void handleDrawRect(Webserver* webserver) {
+    String body = webserver->raw().arg("plain");
+    JsonDocument doc;
+    DeserializationError err = deserializeJson(doc, body);
+
+    if (err) {
+        JsonDocument resp;
+        resp["status"] = "error";
+        resp["message"] = "invalid json";
+        String jsonOut;
+        serializeJson(resp, jsonOut);
+        webserver->raw().send(HTTP_CODE_INTERNAL_ERROR, "application/json", jsonOut);
+        return;
+    }
+
+    int16_t x = doc["x"] | 0;
+    int16_t y = doc["y"] | 0;
+    int16_t w = doc["w"] | 10;
+    int16_t h = doc["h"] | 10;
+    bool fill = doc["fill"] | true;
+    uint16_t color = LCD_WHITE;
+
+    if (doc.containsKey("color")) {
+        color = DisplayManager::hexToRgb565(doc["color"].as<String>());
+    }
+
+    if (fill) {
+        DisplayManager::fillRect(x, y, w, h, color);
+    } else {
+        DisplayManager::drawRect(x, y, w, h, color);
+    }
+
+    JsonDocument resp;
+    resp["status"] = "ok";
+
+    String jsonOut;
+    serializeJson(resp, jsonOut);
+    webserver->raw().send(HTTP_CODE_OK, "application/json", jsonOut);
+}
+
+/**
+ * @brief Draw circle
+ * POST /api/v1/draw/circle
+ * Body: {"x": 120, "y": 120, "r": 50, "color": "#00ff00", "fill": true}
+ */
+void handleDrawCircle(Webserver* webserver) {
+    String body = webserver->raw().arg("plain");
+    JsonDocument doc;
+    DeserializationError err = deserializeJson(doc, body);
+
+    if (err) {
+        JsonDocument resp;
+        resp["status"] = "error";
+        resp["message"] = "invalid json";
+        String jsonOut;
+        serializeJson(resp, jsonOut);
+        webserver->raw().send(HTTP_CODE_INTERNAL_ERROR, "application/json", jsonOut);
+        return;
+    }
+
+    int16_t x = doc["x"] | 120;
+    int16_t y = doc["y"] | 120;
+    int16_t r = doc["r"] | 50;
+    bool fill = doc["fill"] | true;
+    uint16_t color = LCD_WHITE;
+
+    if (doc.containsKey("color")) {
+        color = DisplayManager::hexToRgb565(doc["color"].as<String>());
+    }
+
+    if (fill) {
+        DisplayManager::fillCircle(x, y, r, color);
+    } else {
+        DisplayManager::drawCircle(x, y, r, color);
+    }
+
+    JsonDocument resp;
+    resp["status"] = "ok";
+
+    String jsonOut;
+    serializeJson(resp, jsonOut);
+    webserver->raw().send(HTTP_CODE_OK, "application/json", jsonOut);
+}
+
+/**
+ * @brief Draw line
+ * POST /api/v1/draw/line
+ * Body: {"x0": 0, "y0": 0, "x1": 240, "y1": 240, "color": "#0000ff"}
+ */
+void handleDrawLine(Webserver* webserver) {
+    String body = webserver->raw().arg("plain");
+    JsonDocument doc;
+    DeserializationError err = deserializeJson(doc, body);
+
+    if (err) {
+        JsonDocument resp;
+        resp["status"] = "error";
+        resp["message"] = "invalid json";
+        String jsonOut;
+        serializeJson(resp, jsonOut);
+        webserver->raw().send(HTTP_CODE_INTERNAL_ERROR, "application/json", jsonOut);
+        return;
+    }
+
+    int16_t x0 = doc["x0"] | 0;
+    int16_t y0 = doc["y0"] | 0;
+    int16_t x1 = doc["x1"] | 240;
+    int16_t y1 = doc["y1"] | 240;
+    uint16_t color = LCD_WHITE;
+
+    if (doc.containsKey("color")) {
+        color = DisplayManager::hexToRgb565(doc["color"].as<String>());
+    }
+
+    DisplayManager::drawLine(x0, y0, x1, y1, color);
+
+    JsonDocument resp;
+    resp["status"] = "ok";
+
+    String jsonOut;
+    serializeJson(resp, jsonOut);
+    webserver->raw().send(HTTP_CODE_OK, "application/json", jsonOut);
+}
+
+/**
+ * @brief Draw pixel
+ * POST /api/v1/draw/pixel
+ * Body: {"x": 120, "y": 120, "color": "#ffffff"}
+ */
+void handleDrawPixel(Webserver* webserver) {
+    String body = webserver->raw().arg("plain");
+    JsonDocument doc;
+    DeserializationError err = deserializeJson(doc, body);
+
+    if (err) {
+        JsonDocument resp;
+        resp["status"] = "error";
+        resp["message"] = "invalid json";
+        String jsonOut;
+        serializeJson(resp, jsonOut);
+        webserver->raw().send(HTTP_CODE_INTERNAL_ERROR, "application/json", jsonOut);
+        return;
+    }
+
+    int16_t x = doc["x"] | 0;
+    int16_t y = doc["y"] | 0;
+    uint16_t color = LCD_WHITE;
+
+    if (doc.containsKey("color")) {
+        color = DisplayManager::hexToRgb565(doc["color"].as<String>());
+    }
+
+    DisplayManager::drawPixel(x, y, color);
+
+    JsonDocument resp;
+    resp["status"] = "ok";
+
+    String jsonOut;
+    serializeJson(resp, jsonOut);
+    webserver->raw().send(HTTP_CODE_OK, "application/json", jsonOut);
+}
+
+/**
+ * @brief Draw triangle
+ * POST /api/v1/draw/triangle
+ * Body: {"x0": 100, "y0": 50, "x1": 50, "y1": 150, "x2": 150, "y2": 150, "color": "#ff0000", "fill": true}
+ */
+void handleDrawTriangle(Webserver* webserver) {
+    String body = webserver->raw().arg("plain");
+    JsonDocument doc;
+    DeserializationError err = deserializeJson(doc, body);
+
+    if (err) {
+        JsonDocument resp;
+        resp["status"] = "error";
+        resp["message"] = "invalid json";
+        String jsonOut;
+        serializeJson(resp, jsonOut);
+        webserver->raw().send(HTTP_CODE_INTERNAL_ERROR, "application/json", jsonOut);
+        return;
+    }
+
+    int16_t x0 = doc["x0"] | 0;
+    int16_t y0 = doc["y0"] | 0;
+    int16_t x1 = doc["x1"] | 0;
+    int16_t y1 = doc["y1"] | 0;
+    int16_t x2 = doc["x2"] | 0;
+    int16_t y2 = doc["y2"] | 0;
+    bool fill = doc["fill"] | true;
+    uint16_t color = LCD_WHITE;
+
+    if (doc.containsKey("color")) {
+        color = DisplayManager::hexToRgb565(doc["color"].as<String>());
+    }
+
+    if (fill) {
+        DisplayManager::fillTriangle(x0, y0, x1, y1, x2, y2, color);
+    } else {
+        DisplayManager::drawTriangle(x0, y0, x1, y1, x2, y2, color);
+    }
+
+    JsonDocument resp;
+    resp["status"] = "ok";
+
+    String jsonOut;
+    serializeJson(resp, jsonOut);
+    webserver->raw().send(HTTP_CODE_OK, "application/json", jsonOut);
+}
+
+/**
+ * @brief Draw ellipse
+ * POST /api/v1/draw/ellipse
+ * Body: {"x": 120, "y": 120, "rx": 50, "ry": 30, "color": "#00ff00", "fill": true}
+ */
+void handleDrawEllipse(Webserver* webserver) {
+    String body = webserver->raw().arg("plain");
+    JsonDocument doc;
+    DeserializationError err = deserializeJson(doc, body);
+
+    if (err) {
+        JsonDocument resp;
+        resp["status"] = "error";
+        resp["message"] = "invalid json";
+        String jsonOut;
+        serializeJson(resp, jsonOut);
+        webserver->raw().send(HTTP_CODE_INTERNAL_ERROR, "application/json", jsonOut);
+        return;
+    }
+
+    int16_t x = doc["x"] | 120;
+    int16_t y = doc["y"] | 120;
+    int16_t rx = doc["rx"] | 50;
+    int16_t ry = doc["ry"] | 30;
+    bool fill = doc["fill"] | true;
+    uint16_t color = LCD_WHITE;
+
+    if (doc.containsKey("color")) {
+        color = DisplayManager::hexToRgb565(doc["color"].as<String>());
+    }
+
+    if (fill) {
+        DisplayManager::fillEllipse(x, y, rx, ry, color);
+    } else {
+        DisplayManager::drawEllipse(x, y, rx, ry, color);
+    }
+
+    JsonDocument resp;
+    resp["status"] = "ok";
+
+    String jsonOut;
+    serializeJson(resp, jsonOut);
+    webserver->raw().send(HTTP_CODE_OK, "application/json", jsonOut);
+}
+
+/**
+ * @brief Draw rounded rectangle
+ * POST /api/v1/draw/roundrect
+ * Body: {"x": 10, "y": 10, "w": 100, "h": 50, "r": 10, "color": "#0000ff", "fill": true}
+ */
+void handleDrawRoundRect(Webserver* webserver) {
+    String body = webserver->raw().arg("plain");
+    JsonDocument doc;
+    DeserializationError err = deserializeJson(doc, body);
+
+    if (err) {
+        JsonDocument resp;
+        resp["status"] = "error";
+        resp["message"] = "invalid json";
+        String jsonOut;
+        serializeJson(resp, jsonOut);
+        webserver->raw().send(HTTP_CODE_INTERNAL_ERROR, "application/json", jsonOut);
+        return;
+    }
+
+    int16_t x = doc["x"] | 0;
+    int16_t y = doc["y"] | 0;
+    int16_t w = doc["w"] | 50;
+    int16_t h = doc["h"] | 30;
+    int16_t r = doc["r"] | 5;
+    bool fill = doc["fill"] | true;
+    uint16_t color = LCD_WHITE;
+
+    if (doc.containsKey("color")) {
+        color = DisplayManager::hexToRgb565(doc["color"].as<String>());
+    }
+
+    if (fill) {
+        DisplayManager::fillRoundRect(x, y, w, h, r, color);
+    } else {
+        DisplayManager::drawRoundRect(x, y, w, h, r, color);
+    }
+
+    JsonDocument resp;
+    resp["status"] = "ok";
+
+    String jsonOut;
+    serializeJson(resp, jsonOut);
+    webserver->raw().send(HTTP_CODE_OK, "application/json", jsonOut);
+}
+
+/**
+ * @brief Draw multiple primitives in one request (batch)
+ * POST /api/v1/draw/batch
+ * Body: {"commands": [
+ *   {"type": "clear", "color": "#000000"},
+ *   {"type": "rect", "x": 10, "y": 10, "w": 50, "h": 50, "color": "#ff0000", "fill": true},
+ *   {"type": "text", "x": 70, "y": 100, "text": "Hello", "size": 2, "color": "#ffffff"},
+ *   {"type": "circle", "x": 180, "y": 60, "r": 30, "color": "#00ff00", "fill": true},
+ *   {"type": "line", "x0": 0, "y0": 0, "x1": 240, "y1": 240, "color": "#0000ff"}
+ * ]}
+ */
+void handleDrawBatch(Webserver* webserver) {
+    String body = webserver->raw().arg("plain");
+    JsonDocument doc;
+    DeserializationError err = deserializeJson(doc, body);
+
+    if (err) {
+        JsonDocument resp;
+        resp["status"] = "error";
+        resp["message"] = "invalid json";
+        String jsonOut;
+        serializeJson(resp, jsonOut);
+        webserver->raw().send(HTTP_CODE_INTERNAL_ERROR, "application/json", jsonOut);
+        return;
+    }
+
+    JsonArray commands = doc["commands"].as<JsonArray>();
+    int processed = 0;
+
+    for (JsonObject cmd : commands) {
+        String type = cmd["type"] | "";
+        uint16_t color = LCD_WHITE;
+
+        if (cmd.containsKey("color")) {
+            color = DisplayManager::hexToRgb565(cmd["color"].as<String>());
+        }
+
+        if (type == "clear") {
+            DisplayManager::fillScreen(color);
+        } else if (type == "rect") {
+            int16_t x = cmd["x"] | 0;
+            int16_t y = cmd["y"] | 0;
+            int16_t w = cmd["w"] | 10;
+            int16_t h = cmd["h"] | 10;
+            bool fill = cmd["fill"] | true;
+
+            if (fill) {
+                DisplayManager::fillRect(x, y, w, h, color);
+            } else {
+                DisplayManager::drawRect(x, y, w, h, color);
+            }
+        } else if (type == "circle") {
+            int16_t x = cmd["x"] | 120;
+            int16_t y = cmd["y"] | 120;
+            int16_t r = cmd["r"] | 50;
+            bool fill = cmd["fill"] | true;
+
+            if (fill) {
+                DisplayManager::fillCircle(x, y, r, color);
+            } else {
+                DisplayManager::drawCircle(x, y, r, color);
+            }
+        } else if (type == "line") {
+            int16_t x0 = cmd["x0"] | 0;
+            int16_t y0 = cmd["y0"] | 0;
+            int16_t x1 = cmd["x1"] | 240;
+            int16_t y1 = cmd["y1"] | 240;
+            DisplayManager::drawLine(x0, y0, x1, y1, color);
+        } else if (type == "pixel") {
+            int16_t x = cmd["x"] | 0;
+            int16_t y = cmd["y"] | 0;
+            DisplayManager::drawPixel(x, y, color);
+        } else if (type == "text") {
+            int16_t x = cmd["x"] | 0;
+            int16_t y = cmd["y"] | 0;
+            String text = cmd["text"] | "";
+            uint8_t size = cmd["size"] | 2;
+            uint16_t bgColor = LCD_BLACK;
+            if (cmd.containsKey("bg")) {
+                bgColor = DisplayManager::hexToRgb565(cmd["bg"].as<String>());
+            }
+            bool clearBg = cmd["clear"] | false;
+            DisplayManager::drawTextWrapped(x, y, text, size, color, bgColor, clearBg);
+        } else if (type == "triangle") {
+            int16_t x0 = cmd["x0"] | 0;
+            int16_t y0 = cmd["y0"] | 0;
+            int16_t x1 = cmd["x1"] | 0;
+            int16_t y1 = cmd["y1"] | 0;
+            int16_t x2 = cmd["x2"] | 0;
+            int16_t y2 = cmd["y2"] | 0;
+            bool fill = cmd["fill"] | true;
+            if (fill) {
+                DisplayManager::fillTriangle(x0, y0, x1, y1, x2, y2, color);
+            } else {
+                DisplayManager::drawTriangle(x0, y0, x1, y1, x2, y2, color);
+            }
+        } else if (type == "ellipse") {
+            int16_t x = cmd["x"] | 120;
+            int16_t y = cmd["y"] | 120;
+            int16_t rx = cmd["rx"] | 50;
+            int16_t ry = cmd["ry"] | 30;
+            bool fill = cmd["fill"] | true;
+            if (fill) {
+                DisplayManager::fillEllipse(x, y, rx, ry, color);
+            } else {
+                DisplayManager::drawEllipse(x, y, rx, ry, color);
+            }
+        } else if (type == "roundrect") {
+            int16_t x = cmd["x"] | 0;
+            int16_t y = cmd["y"] | 0;
+            int16_t w = cmd["w"] | 50;
+            int16_t h = cmd["h"] | 30;
+            int16_t r = cmd["r"] | 5;
+            bool fill = cmd["fill"] | true;
+            if (fill) {
+                DisplayManager::fillRoundRect(x, y, w, h, r, color);
+            } else {
+                DisplayManager::drawRoundRect(x, y, w, h, r, color);
+            }
+        }
+
+        processed++;
+        yield();  // Allow other tasks to run between commands
+    }
+
+    JsonDocument resp;
+    resp["status"] = "ok";
+    resp["processed"] = processed;
+
+    String jsonOut;
+    serializeJson(resp, jsonOut);
     webserver->raw().send(HTTP_CODE_OK, "application/json", jsonOut);
 }

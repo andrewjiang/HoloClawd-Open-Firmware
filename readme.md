@@ -1,14 +1,70 @@
-# Geekmagic open firmware
+# HoloClawd Open Firmware
 
-> This repo documents the LCD interface inside the **HelloCubic Lite** cube (ESP8266) from [GeekMagicClock](https://github.com/GeekMagicClock/HelloCubic-Lite)
+> Fork of [GeekMagic-Open-Firmware](https://github.com/Times-Z/GeekMagic-Open-Firmware) with a **Drawing REST API** for programmatic control of the display.
 
-> It also comptabile with the **Smalltv-Ultra** from [GeekMagicClock](https://github.com/GeekMagicClock/smalltv-ultra)
+This firmware adds HTTP endpoints for real-time drawing primitives, enabling applications like animated timers, custom displays, and interactive visualizations - all controlled from Python, curl, or any HTTP client.
 
-[![Latest Release](https://img.shields.io/github/v/release/Times-Z/GeekMagic-Open-Firmware?label=Latest%20Version&color=c56a90&style=for-the-badge&logo=star)](https://github.com/Times-Z/GeekMagic-Open-Firmware/releases)
-[![Build status main](https://img.shields.io/github/actions/workflow/status/Times-Z/GeekMagic-Open-Firmware/.github/workflows/ci.yml?branch=main&label=Pipeline%20Status%20main&style=for-the-badge&logo=star)](https://github.com/Times-Z/GeekMagic-Open-Firmware/actions)
-
-[![Build status develop](https://img.shields.io/github/actions/workflow/status/Times-Z/GeekMagic-Open-Firmware/.github/workflows/ci.yml?branch=develop&label=Pipeline%20Status%20develop&style=for-the-badge&logo=star)](https://github.com/Times-Z/GeekMagic-Open-Firmware/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
+
+## What's New in HoloClawd
+
+### Drawing REST API
+
+Draw shapes, text, and graphics via HTTP POST requests:
+
+```bash
+# Clear screen to black
+curl -X POST http://192.168.7.80/api/v1/draw/clear -d '{"color":"#000000"}'
+
+# Draw a red circle
+curl -X POST http://192.168.7.80/api/v1/draw/circle -d '{"x":120,"y":120,"r":50,"color":"#ff0000","fill":true}'
+
+# Draw text
+curl -X POST http://192.168.7.80/api/v1/draw/text -d '{"x":60,"y":100,"text":"Hello","size":3,"color":"#00ffff"}'
+
+# Batch multiple commands in one request
+curl -X POST http://192.168.7.80/api/v1/draw/batch -d '{
+  "commands": [
+    {"type":"clear","color":"#000000"},
+    {"type":"circle","x":120,"y":120,"r":50,"color":"#ff0000","fill":true},
+    {"type":"text","x":60,"y":150,"text":"HoloClawd","size":2,"color":"#ffffff"}
+  ]
+}'
+```
+
+### Available Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `/api/v1/draw/clear` | Clear screen with optional color |
+| `/api/v1/draw/pixel` | Draw single pixel |
+| `/api/v1/draw/line` | Draw line between two points |
+| `/api/v1/draw/rect` | Draw rectangle (outline or filled) |
+| `/api/v1/draw/circle` | Draw circle (outline or filled) |
+| `/api/v1/draw/triangle` | Draw triangle (outline or filled) |
+| `/api/v1/draw/ellipse` | Draw ellipse (outline or filled) |
+| `/api/v1/draw/roundrect` | Draw rounded rectangle |
+| `/api/v1/draw/text` | Draw text with configurable size/color |
+| `/api/v1/draw/batch` | Execute multiple draw commands in one request |
+
+### Python Client Library
+
+See [holocube_client.py](https://github.com/andrewjiang/HoloClawd-Open-Firmware/blob/main/examples/holocube_client.py) for a full Python client:
+
+```python
+from holocube_client import HoloCube, Color
+
+cube = HoloCube("192.168.7.80")
+cube.clear(Color.BLACK)
+cube.circle(120, 120, 50, Color.RED, fill=True)
+cube.text(60, 180, "Hello!", size=3, color=Color.CYAN)
+```
+
+---
+
+## Original Documentation
+
+> The following documentation is from the upstream [GeekMagic-Open-Firmware](https://github.com/Times-Z/GeekMagic-Open-Firmware) project.
 
 ## Table of Contents
 
@@ -24,11 +80,9 @@
     - [Drawing to the screen](#drawing-to-the-screen)
     - [Color format](#color-format)
     - [Performance optimizations](#performance-optimizations)
-- [What's next ?](#whats-next)
 - [The firmware](#plateformio-firmware)
 - [Install guide](#installation-guide)
 - [License](#license)
-- [Support](#support)
 
 <div align="center">
    <img src=".github/assets/01-showcase.jpg" alt="HelloCubic Lite Showcase" width="1000" />
@@ -42,7 +96,6 @@
 **Warning: I am not responsible for bricking your devices. Flash at your own risk**
 
 **I recommend making a complete [backup](backup/readme.md) of your flash before doing anything**
-**I've upload my factory backup (version 7.0.17 for cube and 9.0.40 for small tv); it might be useful. Backup tested and approved, it works**
 
 ## Teardown
 
@@ -166,19 +219,7 @@ Example colors:
 - **Batch writes**: Multiple operations are batched between beginWrite/endWrite calls
 - **Direct frame buffer writes**: GIF frames are streamed directly to avoid intermediate buffering
 
-## What's next ?
-
-Okay, now we have a minimal firmware that works.
-
-I really like ESP devices and I really enjoy working with ESP-IDF, so I’m planning ~~if possible (I haven’t checked compatibility yet, I’m still new to this world)~~ to create a firmware close to the original one in terms of features, but fully open source ofc \o/
-
-Since ESP IDF is not compatible with esp8266, i'm going to build the firmware on top of [plateformIO](https://platformio.org/)
-
-That’s the project, at least
-
 ## PlateformIO Firmware
-
-This is the "real" firmware I want to improve, with clean and reliable code
 
 ### Stack
 
@@ -193,12 +234,12 @@ This is the "real" firmware I want to improve, with clean and reliable code
 
 ## Installation Guide
 
-To use the open-source firmware on your compatible GeekMagic device, follow these steps:
+To use this firmware on your compatible GeekMagic device, follow these steps:
 
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/Times-Z/GeekMagic-Open-Firmware.git
+git clone https://github.com/andrewjiang/HoloClawd-Open-Firmware.git
 ```
 
 ### 2. Configure the JSON file
@@ -235,8 +276,8 @@ The generated files will be located in:
 
 There are two possible flashing methods:
 
-- **OTA (Over-The-Air)** – no prerequisites
-- **USB** – requires a USB-to-TTL converter to connect to the ESP
+- **OTA (Over-The-Air)** - no prerequisites
+- **USB** - requires a USB-to-TTL converter to connect to the ESP
 
 ---
 
@@ -254,13 +295,13 @@ http://{your_geekmagic_ip}/update
 
 This is the update endpoint of the original firmware. Upload the `firmware.bin` file
 
-Once this step is complete, the device will reboot. Depending on the model, the screen orientation may be correct or not — this is normal
+Once this step is complete, the device will reboot. Depending on the model, the screen orientation may be correct or not - this is normal
 
 At this point, only the firmware has been flashed. The filesystem (configuration, web app) still needs to be flashed
 
 #### Step 2: Flash the filesystem
 
-The firmware will create a Wi‑Fi access point with the following credentials:
+The firmware will create a Wi-Fi access point with the following credentials:
 
 - **SSID:** `GeekMagic`
 - **Password:** `$str0ngPa$$w0rd`
@@ -279,20 +320,17 @@ Once the device reboots, the setup is complete!
 
 This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details
 
----
+## Credits
 
-## Support
-
-- Found a bug or question ? [Open an issue](https://github.com/Times-Z/GeekMagic-Open-Firmware/issues)
+- Original firmware by [Times-Z](https://github.com/Times-Z/GeekMagic-Open-Firmware)
+- Drawing API additions by [andrewjiang](https://github.com/andrewjiang)
 
 ---
 
 <div align="center">
 
-**Made with ❤️**
+**HoloClawd** - Draw on your cube
 
-[Star us on GitHub](https://github.com/Times-Z/GeekMagic-Open-Firmware.git) if you find this project useful !
-
-This project took me a lot of time !
+[Star us on GitHub](https://github.com/andrewjiang/HoloClawd-Open-Firmware) if you find this project useful!
 
 </div>

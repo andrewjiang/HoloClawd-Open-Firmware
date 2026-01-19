@@ -752,3 +752,148 @@ auto DisplayManager::clearScreen() -> void {
         g_lcd->fillScreen(LCD_BLACK);
     }
 }
+
+/**
+ * @brief Fill the entire screen with a color
+ * @param color 16-bit RGB565 color
+ */
+auto DisplayManager::fillScreen(uint16_t color) -> void {
+    if (g_lcdReady && g_lcd != nullptr) {
+        g_lcd->fillScreen(color);
+    }
+}
+
+/**
+ * @brief Draw a single pixel
+ */
+auto DisplayManager::drawPixel(int16_t x, int16_t y, uint16_t color) -> void {
+    if (g_lcdReady && g_lcd != nullptr) {
+        g_lcd->drawPixel(x, y, color);
+    }
+}
+
+/**
+ * @brief Draw a line between two points
+ */
+auto DisplayManager::drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color) -> void {
+    if (g_lcdReady && g_lcd != nullptr) {
+        g_lcd->drawLine(x0, y0, x1, y1, color);
+    }
+}
+
+/**
+ * @brief Draw a rectangle outline
+ */
+auto DisplayManager::drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) -> void {
+    if (g_lcdReady && g_lcd != nullptr) {
+        g_lcd->drawRect(x, y, w, h, color);
+    }
+}
+
+/**
+ * @brief Draw a filled rectangle
+ */
+auto DisplayManager::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) -> void {
+    if (g_lcdReady && g_lcd != nullptr) {
+        g_lcd->fillRect(x, y, w, h, color);
+    }
+}
+
+/**
+ * @brief Draw a circle outline
+ */
+auto DisplayManager::drawCircle(int16_t x, int16_t y, int16_t r, uint16_t color) -> void {
+    if (g_lcdReady && g_lcd != nullptr) {
+        g_lcd->drawCircle(x, y, r, color);
+    }
+}
+
+/**
+ * @brief Draw a filled circle
+ */
+auto DisplayManager::fillCircle(int16_t x, int16_t y, int16_t r, uint16_t color) -> void {
+    if (g_lcdReady && g_lcd != nullptr) {
+        g_lcd->fillCircle(x, y, r, color);
+    }
+}
+
+/**
+ * @brief Draw a triangle outline
+ */
+auto DisplayManager::drawTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2,
+                                   uint16_t color) -> void {
+    if (g_lcdReady && g_lcd != nullptr) {
+        g_lcd->drawTriangle(x0, y0, x1, y1, x2, y2, color);
+    }
+}
+
+/**
+ * @brief Draw a filled triangle
+ */
+auto DisplayManager::fillTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2,
+                                   uint16_t color) -> void {
+    if (g_lcdReady && g_lcd != nullptr) {
+        g_lcd->fillTriangle(x0, y0, x1, y1, x2, y2, color);
+    }
+}
+
+/**
+ * @brief Draw an ellipse outline
+ */
+auto DisplayManager::drawEllipse(int16_t x, int16_t y, int16_t rx, int16_t ry, uint16_t color) -> void {
+    if (g_lcdReady && g_lcd != nullptr) {
+        g_lcd->drawEllipse(x, y, rx, ry, color);
+    }
+}
+
+/**
+ * @brief Draw a filled ellipse
+ */
+auto DisplayManager::fillEllipse(int16_t x, int16_t y, int16_t rx, int16_t ry, uint16_t color) -> void {
+    if (g_lcdReady && g_lcd != nullptr) {
+        g_lcd->fillEllipse(x, y, rx, ry, color);
+    }
+}
+
+/**
+ * @brief Draw a rounded rectangle outline
+ */
+auto DisplayManager::drawRoundRect(int16_t x, int16_t y, int16_t w, int16_t h, int16_t r, uint16_t color) -> void {
+    if (g_lcdReady && g_lcd != nullptr) {
+        g_lcd->drawRoundRect(x, y, w, h, r, color);
+    }
+}
+
+/**
+ * @brief Draw a filled rounded rectangle
+ */
+auto DisplayManager::fillRoundRect(int16_t x, int16_t y, int16_t w, int16_t h, int16_t r, uint16_t color) -> void {
+    if (g_lcdReady && g_lcd != nullptr) {
+        g_lcd->fillRoundRect(x, y, w, h, r, color);
+    }
+}
+
+/**
+ * @brief Convert hex color string to RGB565
+ * @param hex Color string like "#ff0000" or "ff0000"
+ * @return 16-bit RGB565 color
+ */
+auto DisplayManager::hexToRgb565(const String& hex) -> uint16_t {
+    String colorStr = hex;
+    if (colorStr.startsWith("#")) {
+        colorStr = colorStr.substring(1);
+    }
+
+    // Parse 6-char hex (RRGGBB)
+    if (colorStr.length() >= 6) {
+        uint32_t rgb = strtoul(colorStr.c_str(), nullptr, 16);
+        uint8_t r = (rgb >> 16) & 0xFF;
+        uint8_t g = (rgb >> 8) & 0xFF;
+        uint8_t b = rgb & 0xFF;
+
+        // Convert to RGB565: 5 bits R, 6 bits G, 5 bits B
+        return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
+    }
+
+    return LCD_WHITE;  // Default to white on parse error
+}
