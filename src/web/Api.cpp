@@ -609,7 +609,7 @@ static constexpr int16_t SCREEN_SIZE = 240;
 static constexpr uint8_t DEFAULT_TEXT_SIZE = 2;
 
 // Helper to get color from JSON, returns LCD_WHITE if not present
-static uint16_t getColorFromJson(const JsonVariant& obj, const char* key = "color") {
+static auto getColorFromJson(const JsonVariant& obj, const char* key = "color") -> uint16_t {
     if (obj.containsKey(key)) {
         return DisplayManager::hexToRgb565(obj[key].as<String>());
     }
@@ -617,7 +617,7 @@ static uint16_t getColorFromJson(const JsonVariant& obj, const char* key = "colo
 }
 
 // Helper to send success response
-static void sendSuccessResponse(Webserver* webserver) {
+static auto sendSuccessResponse(Webserver* webserver) -> void {
     JsonDocument resp;
     resp["status"] = "ok";
     String jsonOut;
@@ -626,7 +626,7 @@ static void sendSuccessResponse(Webserver* webserver) {
 }
 
 // Helper to send error response
-static void sendErrorResponse(Webserver* webserver, const char* message) {
+static auto sendErrorResponse(Webserver* webserver, const char* message) -> void {
     JsonDocument resp;
     resp["status"] = "error";
     resp["message"] = message;
@@ -887,13 +887,23 @@ void handleDrawRoundRect(Webserver* webserver) {
     sendSuccessResponse(webserver);
 }
 
+// Helper to safely get int16_t from JSON with default
+static auto getInt16(const JsonObject& obj, const char* key, int16_t defaultVal) -> int16_t {
+    return obj.containsKey(key) ? static_cast<int16_t>(obj[key].as<int>()) : defaultVal;
+}
+
+// Helper to safely get bool from JSON with default
+static auto getBool(const JsonObject& obj, const char* key, bool defaultVal) -> bool {
+    return obj.containsKey(key) ? (obj[key].as<int>() != 0) : defaultVal;
+}
+
 // Helper functions for batch processing to reduce cognitive complexity
-static void processBatchRect(const JsonObject& cmd, uint16_t color) {
-    int16_t posX = cmd["x"] | DEFAULT_POS;
-    int16_t posY = cmd["y"] | DEFAULT_POS;
-    int16_t width = cmd["w"] | DEFAULT_SIZE_SMALL;
-    int16_t height = cmd["h"] | DEFAULT_SIZE_SMALL;
-    bool shouldFill = cmd["fill"] | true;
+static auto processBatchRect(const JsonObject& cmd, uint16_t color) -> void {
+    int16_t posX = getInt16(cmd, "x", DEFAULT_POS);
+    int16_t posY = getInt16(cmd, "y", DEFAULT_POS);
+    int16_t width = getInt16(cmd, "w", DEFAULT_SIZE_SMALL);
+    int16_t height = getInt16(cmd, "h", DEFAULT_SIZE_SMALL);
+    bool shouldFill = getBool(cmd, "fill", true);
     if (shouldFill) {
         DisplayManager::fillRect(posX, posY, width, height, color);
     } else {
@@ -901,11 +911,11 @@ static void processBatchRect(const JsonObject& cmd, uint16_t color) {
     }
 }
 
-static void processBatchCircle(const JsonObject& cmd, uint16_t color) {
-    int16_t posX = cmd["x"] | DEFAULT_CENTER;
-    int16_t posY = cmd["y"] | DEFAULT_CENTER;
-    int16_t radius = cmd["r"] | DEFAULT_SIZE_LARGE;
-    bool shouldFill = cmd["fill"] | true;
+static auto processBatchCircle(const JsonObject& cmd, uint16_t color) -> void {
+    int16_t posX = getInt16(cmd, "x", DEFAULT_CENTER);
+    int16_t posY = getInt16(cmd, "y", DEFAULT_CENTER);
+    int16_t radius = getInt16(cmd, "r", DEFAULT_SIZE_LARGE);
+    bool shouldFill = getBool(cmd, "fill", true);
     if (shouldFill) {
         DisplayManager::fillCircle(posX, posY, radius, color);
     } else {
@@ -913,41 +923,41 @@ static void processBatchCircle(const JsonObject& cmd, uint16_t color) {
     }
 }
 
-static void processBatchLine(const JsonObject& cmd, uint16_t color) {
-    int16_t startX = cmd["x0"] | DEFAULT_POS;
-    int16_t startY = cmd["y0"] | DEFAULT_POS;
-    int16_t endX = cmd["x1"] | SCREEN_SIZE;
-    int16_t endY = cmd["y1"] | SCREEN_SIZE;
+static auto processBatchLine(const JsonObject& cmd, uint16_t color) -> void {
+    int16_t startX = getInt16(cmd, "x0", DEFAULT_POS);
+    int16_t startY = getInt16(cmd, "y0", DEFAULT_POS);
+    int16_t endX = getInt16(cmd, "x1", SCREEN_SIZE);
+    int16_t endY = getInt16(cmd, "y1", SCREEN_SIZE);
     DisplayManager::drawLine(startX, startY, endX, endY, color);
 }
 
-static void processBatchPixel(const JsonObject& cmd, uint16_t color) {
-    int16_t posX = cmd["x"] | DEFAULT_POS;
-    int16_t posY = cmd["y"] | DEFAULT_POS;
+static auto processBatchPixel(const JsonObject& cmd, uint16_t color) -> void {
+    int16_t posX = getInt16(cmd, "x", DEFAULT_POS);
+    int16_t posY = getInt16(cmd, "y", DEFAULT_POS);
     DisplayManager::drawPixel(posX, posY, color);
 }
 
-static void processBatchText(const JsonObject& cmd, uint16_t color) {
-    int16_t posX = cmd["x"] | DEFAULT_POS;
-    int16_t posY = cmd["y"] | DEFAULT_POS;
-    String text = cmd["text"] | "";
-    uint8_t textSize = cmd["size"] | DEFAULT_TEXT_SIZE;
+static auto processBatchText(const JsonObject& cmd, uint16_t color) -> void {
+    int16_t posX = getInt16(cmd, "x", DEFAULT_POS);
+    int16_t posY = getInt16(cmd, "y", DEFAULT_POS);
+    String text = cmd.containsKey("text") ? cmd["text"].as<String>() : "";
+    uint8_t textSize = cmd.containsKey("size") ? static_cast<uint8_t>(cmd["size"].as<int>()) : DEFAULT_TEXT_SIZE;
     uint16_t bgColor = LCD_BLACK;
     if (cmd.containsKey("bg")) {
         bgColor = DisplayManager::hexToRgb565(cmd["bg"].as<String>());
     }
-    bool clearBg = cmd["clear"] | false;
+    bool clearBg = getBool(cmd, "clear", false);
     DisplayManager::drawTextWrapped(posX, posY, text, textSize, color, bgColor, clearBg);
 }
 
-static void processBatchTriangle(const JsonObject& cmd, uint16_t color) {
-    int16_t vertX0 = cmd["x0"] | DEFAULT_POS;
-    int16_t vertY0 = cmd["y0"] | DEFAULT_POS;
-    int16_t vertX1 = cmd["x1"] | DEFAULT_POS;
-    int16_t vertY1 = cmd["y1"] | DEFAULT_POS;
-    int16_t vertX2 = cmd["x2"] | DEFAULT_POS;
-    int16_t vertY2 = cmd["y2"] | DEFAULT_POS;
-    bool shouldFill = cmd["fill"] | true;
+static auto processBatchTriangle(const JsonObject& cmd, uint16_t color) -> void {
+    int16_t vertX0 = getInt16(cmd, "x0", DEFAULT_POS);
+    int16_t vertY0 = getInt16(cmd, "y0", DEFAULT_POS);
+    int16_t vertX1 = getInt16(cmd, "x1", DEFAULT_POS);
+    int16_t vertY1 = getInt16(cmd, "y1", DEFAULT_POS);
+    int16_t vertX2 = getInt16(cmd, "x2", DEFAULT_POS);
+    int16_t vertY2 = getInt16(cmd, "y2", DEFAULT_POS);
+    bool shouldFill = getBool(cmd, "fill", true);
     if (shouldFill) {
         DisplayManager::fillTriangle(vertX0, vertY0, vertX1, vertY1, vertX2, vertY2, color);
     } else {
@@ -955,12 +965,12 @@ static void processBatchTriangle(const JsonObject& cmd, uint16_t color) {
     }
 }
 
-static void processBatchEllipse(const JsonObject& cmd, uint16_t color) {
-    int16_t posX = cmd["x"] | DEFAULT_CENTER;
-    int16_t posY = cmd["y"] | DEFAULT_CENTER;
-    int16_t radiusX = cmd["rx"] | DEFAULT_SIZE_LARGE;
-    int16_t radiusY = cmd["ry"] | DEFAULT_SIZE_MEDIUM;
-    bool shouldFill = cmd["fill"] | true;
+static auto processBatchEllipse(const JsonObject& cmd, uint16_t color) -> void {
+    int16_t posX = getInt16(cmd, "x", DEFAULT_CENTER);
+    int16_t posY = getInt16(cmd, "y", DEFAULT_CENTER);
+    int16_t radiusX = getInt16(cmd, "rx", DEFAULT_SIZE_LARGE);
+    int16_t radiusY = getInt16(cmd, "ry", DEFAULT_SIZE_MEDIUM);
+    bool shouldFill = getBool(cmd, "fill", true);
     if (shouldFill) {
         DisplayManager::fillEllipse(posX, posY, radiusX, radiusY, color);
     } else {
@@ -968,13 +978,13 @@ static void processBatchEllipse(const JsonObject& cmd, uint16_t color) {
     }
 }
 
-static void processBatchRoundRect(const JsonObject& cmd, uint16_t color) {
-    int16_t posX = cmd["x"] | DEFAULT_POS;
-    int16_t posY = cmd["y"] | DEFAULT_POS;
-    int16_t width = cmd["w"] | DEFAULT_SIZE_LARGE;
-    int16_t height = cmd["h"] | DEFAULT_SIZE_MEDIUM;
-    int16_t radius = cmd["r"] | DEFAULT_CORNER_RADIUS;
-    bool shouldFill = cmd["fill"] | true;
+static auto processBatchRoundRect(const JsonObject& cmd, uint16_t color) -> void {
+    int16_t posX = getInt16(cmd, "x", DEFAULT_POS);
+    int16_t posY = getInt16(cmd, "y", DEFAULT_POS);
+    int16_t width = getInt16(cmd, "w", DEFAULT_SIZE_LARGE);
+    int16_t height = getInt16(cmd, "h", DEFAULT_SIZE_MEDIUM);
+    int16_t radius = getInt16(cmd, "r", DEFAULT_CORNER_RADIUS);
+    bool shouldFill = getBool(cmd, "fill", true);
     if (shouldFill) {
         DisplayManager::fillRoundRect(posX, posY, width, height, radius, color);
     } else {
@@ -1007,7 +1017,7 @@ void handleDrawBatch(Webserver* webserver) {
     int processed = 0;
 
     for (JsonObject cmd : commands) {
-        String cmdType = cmd["type"] | "";
+        String cmdType = cmd.containsKey("type") ? cmd["type"].as<String>() : "";
         uint16_t color = getColorFromJson(cmd);
 
         if (cmdType == "clear") {
