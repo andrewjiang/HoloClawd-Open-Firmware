@@ -60,6 +60,31 @@ cube.circle(120, 120, 50, Color.RED, fill=True)
 cube.text(60, 180, "Hello!", size=3, color=Color.CYAN)
 ```
 
+### Pomodoro Timer with Lobster Mascot
+
+A productivity timer with a cute lobster buddy that focuses with you during work sessions and celebrates during breaks.
+
+<div align="center">
+   <img src=".github/assets/pomodoro-lobster.jpg" alt="Pomodoro Timer with Lobster" width="400" />
+   <br>
+   <em>25-minute focus session with lobster mascot</em>
+</div>
+
+```bash
+# Run the pomodoro timer (25 min work, 5 min break)
+cd examples
+uv run --script pomodoro.py
+
+# Custom timing
+uv run --script pomodoro.py --work 50 --short 10 --long 20
+```
+
+Features:
+- Lobster mascot watches you work (focused expression)
+- During breaks: happy lobster with twinkling confetti
+- Flashing alerts between sessions
+- Tracks completed sessions
+
 ---
 
 ## Original Documentation
