@@ -766,112 +766,123 @@ auto DisplayManager::fillScreen(uint16_t color) -> void {
 /**
  * @brief Draw a single pixel
  */
-auto DisplayManager::drawPixel(int16_t x, int16_t y, uint16_t color) -> void {
+auto DisplayManager::drawPixel(int16_t posX, int16_t posY, uint16_t color) -> void {
     if (g_lcdReady && g_lcd != nullptr) {
-        g_lcd->drawPixel(x, y, color);
+        g_lcd->drawPixel(posX, posY, color);
     }
 }
 
 /**
  * @brief Draw a line between two points
  */
-auto DisplayManager::drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color) -> void {
+auto DisplayManager::drawLine(int16_t startX, int16_t startY, int16_t endX, int16_t endY, uint16_t color) -> void {
     if (g_lcdReady && g_lcd != nullptr) {
-        g_lcd->drawLine(x0, y0, x1, y1, color);
+        g_lcd->drawLine(startX, startY, endX, endY, color);
     }
 }
 
 /**
  * @brief Draw a rectangle outline
  */
-auto DisplayManager::drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) -> void {
+auto DisplayManager::drawRect(int16_t posX, int16_t posY, int16_t width, int16_t height, uint16_t color) -> void {
     if (g_lcdReady && g_lcd != nullptr) {
-        g_lcd->drawRect(x, y, w, h, color);
+        g_lcd->drawRect(posX, posY, width, height, color);
     }
 }
 
 /**
  * @brief Draw a filled rectangle
  */
-auto DisplayManager::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) -> void {
+auto DisplayManager::fillRect(int16_t posX, int16_t posY, int16_t width, int16_t height, uint16_t color) -> void {
     if (g_lcdReady && g_lcd != nullptr) {
-        g_lcd->fillRect(x, y, w, h, color);
+        g_lcd->fillRect(posX, posY, width, height, color);
     }
 }
 
 /**
  * @brief Draw a circle outline
  */
-auto DisplayManager::drawCircle(int16_t x, int16_t y, int16_t r, uint16_t color) -> void {
+auto DisplayManager::drawCircle(int16_t posX, int16_t posY, int16_t radius, uint16_t color) -> void {
     if (g_lcdReady && g_lcd != nullptr) {
-        g_lcd->drawCircle(x, y, r, color);
+        g_lcd->drawCircle(posX, posY, radius, color);
     }
 }
 
 /**
  * @brief Draw a filled circle
  */
-auto DisplayManager::fillCircle(int16_t x, int16_t y, int16_t r, uint16_t color) -> void {
+auto DisplayManager::fillCircle(int16_t posX, int16_t posY, int16_t radius, uint16_t color) -> void {
     if (g_lcdReady && g_lcd != nullptr) {
-        g_lcd->fillCircle(x, y, r, color);
+        g_lcd->fillCircle(posX, posY, radius, color);
     }
 }
 
 /**
  * @brief Draw a triangle outline
  */
-auto DisplayManager::drawTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2,
+auto DisplayManager::drawTriangle(int16_t vertX0, int16_t vertY0, int16_t vertX1, int16_t vertY1, int16_t vertX2, int16_t vertY2,
                                    uint16_t color) -> void {
     if (g_lcdReady && g_lcd != nullptr) {
-        g_lcd->drawTriangle(x0, y0, x1, y1, x2, y2, color);
+        g_lcd->drawTriangle(vertX0, vertY0, vertX1, vertY1, vertX2, vertY2, color);
     }
 }
 
 /**
  * @brief Draw a filled triangle
  */
-auto DisplayManager::fillTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2,
+auto DisplayManager::fillTriangle(int16_t vertX0, int16_t vertY0, int16_t vertX1, int16_t vertY1, int16_t vertX2, int16_t vertY2,
                                    uint16_t color) -> void {
     if (g_lcdReady && g_lcd != nullptr) {
-        g_lcd->fillTriangle(x0, y0, x1, y1, x2, y2, color);
+        g_lcd->fillTriangle(vertX0, vertY0, vertX1, vertY1, vertX2, vertY2, color);
     }
 }
 
 /**
  * @brief Draw an ellipse outline
  */
-auto DisplayManager::drawEllipse(int16_t x, int16_t y, int16_t rx, int16_t ry, uint16_t color) -> void {
+auto DisplayManager::drawEllipse(int16_t posX, int16_t posY, int16_t radiusX, int16_t radiusY, uint16_t color) -> void {
     if (g_lcdReady && g_lcd != nullptr) {
-        g_lcd->drawEllipse(x, y, rx, ry, color);
+        g_lcd->drawEllipse(posX, posY, radiusX, radiusY, color);
     }
 }
 
 /**
  * @brief Draw a filled ellipse
  */
-auto DisplayManager::fillEllipse(int16_t x, int16_t y, int16_t rx, int16_t ry, uint16_t color) -> void {
+auto DisplayManager::fillEllipse(int16_t posX, int16_t posY, int16_t radiusX, int16_t radiusY, uint16_t color) -> void {
     if (g_lcdReady && g_lcd != nullptr) {
-        g_lcd->fillEllipse(x, y, rx, ry, color);
+        g_lcd->fillEllipse(posX, posY, radiusX, radiusY, color);
     }
 }
 
 /**
  * @brief Draw a rounded rectangle outline
  */
-auto DisplayManager::drawRoundRect(int16_t x, int16_t y, int16_t w, int16_t h, int16_t r, uint16_t color) -> void {
+auto DisplayManager::drawRoundRect(int16_t posX, int16_t posY, int16_t width, int16_t height, int16_t radius, uint16_t color) -> void {
     if (g_lcdReady && g_lcd != nullptr) {
-        g_lcd->drawRoundRect(x, y, w, h, r, color);
+        g_lcd->drawRoundRect(posX, posY, width, height, radius, color);
     }
 }
 
 /**
  * @brief Draw a filled rounded rectangle
  */
-auto DisplayManager::fillRoundRect(int16_t x, int16_t y, int16_t w, int16_t h, int16_t r, uint16_t color) -> void {
+auto DisplayManager::fillRoundRect(int16_t posX, int16_t posY, int16_t width, int16_t height, int16_t radius, uint16_t color) -> void {
     if (g_lcdReady && g_lcd != nullptr) {
-        g_lcd->fillRoundRect(x, y, w, h, r, color);
+        g_lcd->fillRoundRect(posX, posY, width, height, radius, color);
     }
 }
+
+// RGB565 conversion constants
+static constexpr uint8_t HEX_COLOR_LENGTH = 6;
+static constexpr uint8_t RED_SHIFT = 16;
+static constexpr uint8_t GREEN_SHIFT = 8;
+static constexpr uint8_t BYTE_MASK = 0xFF;
+static constexpr uint8_t RED_MASK_565 = 0xF8;
+static constexpr uint8_t GREEN_MASK_565 = 0xFC;
+static constexpr uint8_t RGB565_RED_SHIFT = 8;
+static constexpr uint8_t RGB565_GREEN_SHIFT = 3;
+static constexpr uint8_t RGB565_BLUE_SHIFT = 3;
 
 /**
  * @brief Convert hex color string to RGB565
@@ -885,14 +896,14 @@ auto DisplayManager::hexToRgb565(const String& hex) -> uint16_t {
     }
 
     // Parse 6-char hex (RRGGBB)
-    if (colorStr.length() >= 6) {
-        uint32_t rgb = strtoul(colorStr.c_str(), nullptr, 16);
-        uint8_t r = (rgb >> 16) & 0xFF;
-        uint8_t g = (rgb >> 8) & 0xFF;
-        uint8_t b = rgb & 0xFF;
+    if (colorStr.length() >= HEX_COLOR_LENGTH) {
+        uint32_t rgb = strtoul(colorStr.c_str(), nullptr, RED_SHIFT);  // base 16
+        uint8_t red = (rgb >> RED_SHIFT) & BYTE_MASK;
+        uint8_t green = (rgb >> GREEN_SHIFT) & BYTE_MASK;
+        uint8_t blue = rgb & BYTE_MASK;
 
         // Convert to RGB565: 5 bits R, 6 bits G, 5 bits B
-        return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
+        return ((red & RED_MASK_565) << RGB565_RED_SHIFT) | ((green & GREEN_MASK_565) << RGB565_GREEN_SHIFT) | (blue >> RGB565_BLUE_SHIFT);
     }
 
     return LCD_WHITE;  // Default to white on parse error
