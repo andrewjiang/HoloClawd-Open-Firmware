@@ -109,8 +109,9 @@ auto DisplayManager::screenHeight() -> int16_t {
 static constexpr int32_t I16_MAX_VALUE = 32767;
 static constexpr uint16_t RGB565_GRAY_50 = 0x7BEF;
 static constexpr uint16_t UI_SEPARATOR_COLOR = 0x39E7;
-static constexpr uint16_t RGB565_PURPLE = 0x780F;
-static constexpr uint16_t RGB565_BLACK = 0x0000;
+// NOTE: Arduino_GFX defines RGB565_* macros; avoid those names here.
+static constexpr uint16_t COLOR_PURPLE_565 = 0x780F;
+static constexpr uint16_t COLOR_BLACK_565 = 0x0000;
 
 static inline auto clampI16(int value, int low, int high) -> int16_t {
     if (value < low) {
@@ -955,9 +956,9 @@ static void drawPillIcon(int16_t centerX, int16_t centerY, uint16_t fgColor, uin
     const auto xLeft = static_cast<int16_t>(centerX - width / 2);
     const auto yTop = static_cast<int16_t>(centerY - height / 2);
 
-    const uint16_t outline = RGB565_BLACK;
+    const uint16_t outline = COLOR_BLACK_565;
 
-    DisplayManager::fillRoundRect(xLeft, yTop, width, height, radius, RGB565_PURPLE);
+    DisplayManager::fillRoundRect(xLeft, yTop, width, height, radius, COLOR_PURPLE_565);
     DisplayManager::fillRect(xLeft, static_cast<int16_t>(yTop + height / 2), width, static_cast<int16_t>(height / 2), fgColor);
     DisplayManager::drawRoundRect(xLeft, yTop, width, height, radius, outline);
     DisplayManager::drawLine(static_cast<int16_t>(xLeft + 1), static_cast<int16_t>(yTop + height / 2),
