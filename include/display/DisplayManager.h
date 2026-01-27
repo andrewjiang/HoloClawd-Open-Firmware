@@ -14,12 +14,30 @@ static constexpr int ONE_LINE_SPACE = 20;
 static constexpr int TWO_LINES_SPACE = 40;
 static constexpr int THREE_LINES_SPACE = 60;
 
+// -----------------------------------------------------------------------------
+// Minimal UI layout helpers ("OS template" building blocks)
+// -----------------------------------------------------------------------------
+struct UiRect {
+    int16_t x;
+    int16_t y;
+    int16_t w;
+    int16_t h;
+};
+
+// Default layout for 240x240 screens (works for other sizes too)
+static constexpr int16_t UI_PADDING = 10;
+static constexpr int16_t UI_STATUS_BAR_HEIGHT = 64;
+static constexpr int16_t UI_FOOTER_HEIGHT = 70;
+static constexpr int16_t UI_GAP = 6;
+
 class DisplayManager {
    public:
     static void begin();
     static bool isReady();
     static void ensureInit();
     static Arduino_GFX* getGfx();
+    static int16_t screenWidth();
+    static int16_t screenHeight();
     static void drawStartup(String currentIP);
     static void drawTextWrapped(int16_t xPos, int16_t yPos, const String& text, uint8_t textSize, uint16_t fgColor,
                                 uint16_t bgColor, bool clearBg);
@@ -29,6 +47,20 @@ class DisplayManager {
     static bool stopGif();
     static void update();
     static void clearScreen();
+
+    // Layout rectangles for a simple 3-region UI: status bar, body, footer (mascot)
+    static UiRect getStatusBarRect();
+    static UiRect getBodyRect();
+    static UiRect getFooterRect();
+
+    // Lightweight helpers for status/body rendering (intended for partial updates)
+    static void drawStatusBar(const String& leftText, const String& rightText, bool wifiConnected, int8_t wifiBars,
+                              int8_t batteryPct, bool charging, uint16_t fgColor = LCD_WHITE, uint16_t bgColor = LCD_BLACK,
+                              bool clearBg = true);
+    static void drawTrackerBar(int16_t waterCount, int16_t tomatoCount, int16_t pushupCount, bool supplementsDone,
+                               uint16_t fgColor = LCD_WHITE, uint16_t bgColor = LCD_BLACK, bool clearBg = true);
+    static void drawBodyText(const String& text, uint8_t textSize = 2, uint16_t fgColor = LCD_WHITE,
+                             uint16_t bgColor = LCD_BLACK, bool clearBg = true);
 
     // Drawing primitives for custom screens
     static void fillScreen(uint16_t color);

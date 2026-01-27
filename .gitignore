@@ -39,6 +39,9 @@ idf.py*
 
 !backup/**/*.bin
 
+.DS_Store
+**/.DS_Store
+
 .pio/
 include/project_version.h
 .vscode/c_cpp_properties.json
