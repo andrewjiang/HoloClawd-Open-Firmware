@@ -106,120 +106,127 @@ auto DisplayManager::screenHeight() -> int16_t {
     return static_cast<int16_t>(configManager.getLCDHeightSafe());
 }
 
-static inline auto clampI16(int v, int lo, int hi) -> int16_t {
-    if (v < lo) {
-        return static_cast<int16_t>(lo);
+static constexpr int32_t I16_MAX_VALUE = 32767;
+static constexpr uint16_t RGB565_GRAY_50 = 0x7BEF;
+static constexpr uint16_t UI_SEPARATOR_COLOR = 0x39E7;
+static constexpr uint16_t RGB565_PURPLE = 0x780F;
+static constexpr uint16_t RGB565_BLACK = 0x0000;
+
+static inline auto clampI16(int value, int low, int high) -> int16_t {
+    if (value < low) {
+        return static_cast<int16_t>(low);
     }
-    if (v > hi) {
-        return static_cast<int16_t>(hi);
+    if (value > high) {
+        return static_cast<int16_t>(high);
     }
-    return static_cast<int16_t>(v);
+    return static_cast<int16_t>(value);
 }
 
-static inline auto safeFillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) -> void {
-    if (g_lcdReady && g_lcd != nullptr && w > 0 && h > 0) {
-        g_lcd->fillRect(x, y, w, h, color);
+static inline auto safeFillRect(int16_t xPos, int16_t yPos, int16_t width, int16_t height, uint16_t color) -> void {
+    if (g_lcdReady && g_lcd != nullptr && width > 0 && height > 0) {
+        g_lcd->fillRect(xPos, yPos, width, height, color);
     }
 }
 
-static inline auto safeDrawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) -> void {
-    if (g_lcdReady && g_lcd != nullptr && w > 0 && h > 0) {
-        g_lcd->drawRect(x, y, w, h, color);
+static inline auto safeDrawRect(int16_t xPos, int16_t yPos, int16_t width, int16_t height, uint16_t color) -> void {
+    if (g_lcdReady && g_lcd != nullptr && width > 0 && height > 0) {
+        g_lcd->drawRect(xPos, yPos, width, height, color);
     }
 }
 
 auto DisplayManager::getStatusBarRect() -> UiRect {
-    const int16_t w = DisplayManager::screenWidth();
-    const int16_t h = DisplayManager::screenHeight();
-    const int16_t barH = clampI16(UI_STATUS_BAR_HEIGHT, 0, h);
-    return UiRect{0, 0, w, barH};
+    const int16_t width = DisplayManager::screenWidth();
+    const int16_t height = DisplayManager::screenHeight();
+    const int16_t barHeight = clampI16(UI_STATUS_BAR_HEIGHT, 0, height);
+    return UiRect{0, 0, width, barHeight};
 }
 
 auto DisplayManager::getFooterRect() -> UiRect {
-    const int16_t w = DisplayManager::screenWidth();
-    const int16_t h = DisplayManager::screenHeight();
-    const int16_t footerH = clampI16(UI_FOOTER_HEIGHT, 0, h);
-    return UiRect{0, static_cast<int16_t>(h - footerH), w, footerH};
+    const int16_t width = DisplayManager::screenWidth();
+    const int16_t height = DisplayManager::screenHeight();
+    const int16_t footerHeight = clampI16(UI_FOOTER_HEIGHT, 0, height);
+    return UiRect{0, static_cast<int16_t>(height - footerHeight), width, footerHeight};
 }
 
 auto DisplayManager::getBodyRect() -> UiRect {
-    const int16_t w = DisplayManager::screenWidth();
-    const int16_t h = DisplayManager::screenHeight();
-    const int16_t barH = clampI16(UI_STATUS_BAR_HEIGHT, 0, h);
-    const int16_t footerH = clampI16(UI_FOOTER_HEIGHT, 0, h);
-    const int bodyH = static_cast<int>(h) - static_cast<int>(barH) - static_cast<int>(footerH);
-    return UiRect{0, barH, w, clampI16(bodyH, 0, h)};
+    const int16_t width = DisplayManager::screenWidth();
+    const int16_t height = DisplayManager::screenHeight();
+    const int16_t barHeight = clampI16(UI_STATUS_BAR_HEIGHT, 0, height);
+    const int16_t footerHeight = clampI16(UI_FOOTER_HEIGHT, 0, height);
+    const int bodyHeight = static_cast<int>(height) - static_cast<int>(barHeight) - static_cast<int>(footerHeight);
+    return UiRect{0, barHeight, width, clampI16(bodyHeight, 0, height)};
 }
 
 static auto statusTextY(uint8_t textSize, const UiRect& bar) -> int16_t {
-    const int16_t charH = static_cast<int16_t>(8 * textSize);
-    const int y = static_cast<int>(bar.y) + (static_cast<int>(bar.h) - static_cast<int>(charH)) / 2;
-    return clampI16(y, bar.y, bar.y + bar.h);
+    const auto charHeight = static_cast<int16_t>(8 * textSize);
+    const int yPos = static_cast<int>(bar.y) + (static_cast<int>(bar.h) - static_cast<int>(charHeight)) / 2;
+    return clampI16(yPos, bar.y, bar.y + bar.h);
 }
 
 static auto textWidthPx(const String& text, uint8_t textSize) -> int16_t {
-    const int w = static_cast<int>(text.length()) * static_cast<int>(6 * textSize);
-    return clampI16(w, 0, 32767);
+    const int pixelWidth = static_cast<int>(text.length()) * static_cast<int>(6 * textSize);
+    const int clampedWidth = (pixelWidth < 0) ? 0 : ((pixelWidth > I16_MAX_VALUE) ? I16_MAX_VALUE : pixelWidth);
+    return static_cast<int16_t>(clampedWidth);
 }
 
-static void drawWifiIcon(int16_t xRight, int16_t yTop, bool connected, int8_t bars, uint16_t fg, uint16_t bg) {
+static void drawWifiIcon(int16_t xRight, int16_t yTop, bool connected, int8_t bars, uint16_t fgColor, uint16_t bgColor) {
     // Simple 4-bar icon, 14x10px.
     const int16_t iconW = 14;
     const int16_t iconH = 10;
-    const int16_t x0 = static_cast<int16_t>(xRight - iconW);
-    safeFillRect(x0, yTop, iconW, iconH, bg);
+    const auto xLeft = static_cast<int16_t>(xRight - iconW);
+    safeFillRect(xLeft, yTop, iconW, iconH, bgColor);
 
-    const int8_t b = static_cast<int8_t>(clampI16(bars, 0, 4));
-    const uint16_t on = connected ? fg : static_cast<uint16_t>(fg);  // keep fg; disconnected indicated via outline
-    const uint16_t off = static_cast<uint16_t>((fg == LCD_WHITE) ? 0x7BEF : fg);  // ~50% gray if white fg
+    const auto barsClamped = static_cast<int8_t>(clampI16(bars, 0, 4));
+    const uint16_t colorOn = fgColor;  // disconnected indicated via outline
+    const auto colorOff = static_cast<uint16_t>((fgColor == LCD_WHITE) ? RGB565_GRAY_50 : fgColor);  // gray if white fg
 
     // Outline box if disconnected
     if (!connected) {
-        safeDrawRect(x0, yTop, iconW, iconH, off);
+        safeDrawRect(xLeft, yTop, iconW, iconH, colorOff);
     }
 
     for (int i = 0; i < 4; ++i) {
         const int16_t barW = 2;
         const int16_t gap = 1;
-        const int16_t bx = static_cast<int16_t>(x0 + 1 + i * (barW + gap));
-        const int16_t bh = static_cast<int16_t>(2 + i * 2);
-        const int16_t by = static_cast<int16_t>(yTop + iconH - bh);
-        safeFillRect(bx, by, barW, bh, (i < b && connected) ? on : off);
+        const auto barXPos = static_cast<int16_t>(xLeft + 1 + i * (barW + gap));
+        const auto barHeight = static_cast<int16_t>(2 + i * 2);
+        const auto barYPos = static_cast<int16_t>(yTop + iconH - barHeight);
+        safeFillRect(barXPos, barYPos, barW, barHeight, (i < barsClamped && connected) ? colorOn : colorOff);
     }
 }
 
-static void drawBatteryIcon(int16_t xRight, int16_t yTop, int8_t pct, bool charging, uint16_t fg, uint16_t bg) {
+static void drawBatteryIcon(int16_t xRight, int16_t yTop, int8_t pct, bool charging, uint16_t fgColor, uint16_t bgColor) {
     // Battery icon ~20x10px with nub.
     const int16_t iconW = 20;
     const int16_t iconH = 10;
-    const int16_t x0 = static_cast<int16_t>(xRight - iconW);
-    safeFillRect(x0, yTop, iconW, iconH, bg);
+    const auto xLeft = static_cast<int16_t>(xRight - iconW);
+    safeFillRect(xLeft, yTop, iconW, iconH, bgColor);
 
     const int16_t bodyW = 16;
     const int16_t bodyH = 10;
     const int16_t nubW = 3;
     const int16_t nubH = 4;
-    const int16_t nubX = static_cast<int16_t>(x0 + bodyW);
-    const int16_t nubY = static_cast<int16_t>(yTop + (iconH - nubH) / 2);
+    const auto nubXPos = static_cast<int16_t>(xLeft + bodyW);
+    const auto nubYPos = static_cast<int16_t>(yTop + (iconH - nubH) / 2);
 
-    safeDrawRect(x0, yTop, bodyW, bodyH, fg);
-    safeFillRect(nubX, nubY, nubW, nubH, fg);
+    safeDrawRect(xLeft, yTop, bodyW, bodyH, fgColor);
+    safeFillRect(nubXPos, nubYPos, nubW, nubH, fgColor);
 
-    const int p = clampI16(pct, 0, 100);
-    const int fillW = (bodyW - 2) * p / 100;
-    if (fillW > 0) {
-        safeFillRect(static_cast<int16_t>(x0 + 1), static_cast<int16_t>(yTop + 1), static_cast<int16_t>(fillW),
-                     static_cast<int16_t>(bodyH - 2), fg);
+    const int pctClamped = clampI16(pct, 0, 100);
+    const int fillWidth = (bodyW - 2) * pctClamped / 100;
+    if (fillWidth > 0) {
+        safeFillRect(static_cast<int16_t>(xLeft + 1), static_cast<int16_t>(yTop + 1), static_cast<int16_t>(fillWidth),
+                     static_cast<int16_t>(bodyH - 2), fgColor);
     }
 
     // Charging bolt (tiny) overlay
     if (charging) {
-        const int16_t cx = static_cast<int16_t>(x0 + bodyW / 2);
-        const int16_t cy = static_cast<int16_t>(yTop + bodyH / 2);
+        const auto centerX = static_cast<int16_t>(xLeft + bodyW / 2);
+        const auto centerY = static_cast<int16_t>(yTop + bodyH / 2);
         if (g_lcdReady && g_lcd != nullptr) {
-            g_lcd->drawLine(static_cast<int16_t>(cx - 2), static_cast<int16_t>(cy - 3), cx, cy, bg);
-            g_lcd->drawLine(cx, cy, static_cast<int16_t>(cx - 1), static_cast<int16_t>(cy + 3), bg);
-            g_lcd->drawLine(static_cast<int16_t>(cx + 2), static_cast<int16_t>(cy - 3), cx, cy, bg);
+            g_lcd->drawLine(static_cast<int16_t>(centerX - 2), static_cast<int16_t>(centerY - 3), centerX, centerY, bgColor);
+            g_lcd->drawLine(centerX, centerY, static_cast<int16_t>(centerX - 1), static_cast<int16_t>(centerY + 3), bgColor);
+            g_lcd->drawLine(static_cast<int16_t>(centerX + 2), static_cast<int16_t>(centerY - 3), centerX, centerY, bgColor);
         }
     }
 }
@@ -829,21 +836,21 @@ auto DisplayManager::drawStatusBar(const String& leftText, const String& rightTe
     }
 
     // Optional subtle separator
-    safeFillRect(bar.x, static_cast<int16_t>(bar.y + bar.h - 1), bar.w, 1, static_cast<uint16_t>(0x39E7));  // dark-ish
+    safeFillRect(bar.x, static_cast<int16_t>(bar.y + bar.h - 1), bar.w, 1, UI_SEPARATOR_COLOR);
 
     constexpr uint8_t textSize = 1;
     const int16_t yText = statusTextY(textSize, bar);
 
     // Right-side icons: [wifi][gap][battery]
     const int16_t iconH = 10;
-    const int16_t iconY = static_cast<int16_t>(bar.y + (bar.h - iconH) / 2);
+    const auto iconY = static_cast<int16_t>(bar.y + (bar.h - iconH) / 2);
     const int16_t pad = UI_PADDING;
 
     const int16_t batteryW = 20;
     const int16_t wifiW = 14;
-    const int16_t iconsW = static_cast<int16_t>(wifiW + UI_GAP + batteryW);
+    const auto iconsW = static_cast<int16_t>(wifiW + UI_GAP + batteryW);
 
-    int16_t xRight = static_cast<int16_t>(bar.x + bar.w - pad);
+    auto xRight = static_cast<int16_t>(bar.x + bar.w - pad);
 
     drawBatteryIcon(xRight, iconY, batteryPct, charging, fgColor, bgColor);
     xRight = static_cast<int16_t>(xRight - batteryW - UI_GAP);
@@ -853,9 +860,9 @@ auto DisplayManager::drawStatusBar(const String& leftText, const String& rightTe
 
     // Right text sits to the left of icons
     if (rightText.length() > 0U) {
-        const int16_t tw = textWidthPx(rightText, textSize);
-        const int16_t x = static_cast<int16_t>(bar.x + bar.w - pad - iconsW - UI_GAP - tw);
-        DisplayManager::drawTextWrapped(x, yText, rightText, textSize, fgColor, bgColor, false);
+        const int16_t textWidth = textWidthPx(rightText, textSize);
+        const auto xPos = static_cast<int16_t>(bar.x + bar.w - pad - iconsW - UI_GAP - textWidth);
+        DisplayManager::drawTextWrapped(xPos, yText, rightText, textSize, fgColor, bgColor, false);
     }
 
     // Left text sits at padding
@@ -867,28 +874,48 @@ auto DisplayManager::drawStatusBar(const String& leftText, const String& rightTe
     yield();
 }
 
-static void drawDropletIcon(int16_t cx, int16_t cy, uint16_t color, uint16_t shine) {
+static void drawDropletIcon(int16_t centerX, int16_t centerY, uint16_t color, uint16_t shine) {
     if (!DisplayManager::isReady()) {
         return;
     }
     // droplet = circle + triangle
-    DisplayManager::fillCircle(cx, static_cast<int16_t>(cy + 3), 8, color);
-    DisplayManager::fillTriangle(cx, static_cast<int16_t>(cy - 10), static_cast<int16_t>(cx - 7), static_cast<int16_t>(cy + 2),
-                                 static_cast<int16_t>(cx + 7), static_cast<int16_t>(cy + 2), color);
-    DisplayManager::fillCircle(static_cast<int16_t>(cx - 2), static_cast<int16_t>(cy + 1), 2, shine);
+    constexpr int16_t kDropletRadius = 8;
+    constexpr int16_t kDropletCircleYOffset = 3;
+    constexpr int16_t kDropletTipYOffset = -10;
+    constexpr int16_t kDropletTriHalfWidth = 7;
+    constexpr int16_t kDropletTriBaseYOffset = 2;
+    constexpr int16_t kShineXOffset = -2;
+    constexpr int16_t kShineYOffset = 1;
+    constexpr int16_t kShineRadius = 2;
+
+    DisplayManager::fillCircle(centerX, static_cast<int16_t>(centerY + kDropletCircleYOffset), kDropletRadius, color);
+    DisplayManager::fillTriangle(centerX, static_cast<int16_t>(centerY + kDropletTipYOffset),
+                                 static_cast<int16_t>(centerX - kDropletTriHalfWidth), static_cast<int16_t>(centerY + kDropletTriBaseYOffset),
+                                 static_cast<int16_t>(centerX + kDropletTriHalfWidth), static_cast<int16_t>(centerY + kDropletTriBaseYOffset),
+                                 color);
+    DisplayManager::fillCircle(static_cast<int16_t>(centerX + kShineXOffset), static_cast<int16_t>(centerY + kShineYOffset), kShineRadius,
+                              shine);
 }
 
-static void drawTomatoIcon(int16_t cx, int16_t cy, uint16_t red, uint16_t green, uint16_t shine) {
+static void drawTomatoIcon(int16_t centerX, int16_t centerY, uint16_t colorRed, uint16_t colorGreen, uint16_t shine) {
     if (!DisplayManager::isReady()) {
         return;
     }
     // Tomato: oval fruit with tiny green speck at top.
-    DisplayManager::fillEllipse(cx, static_cast<int16_t>(cy + 4), 11, 9, red);
-    DisplayManager::fillCircle(static_cast<int16_t>(cx - 4), cy, 3, shine);
-    DisplayManager::fillCircle(cx, static_cast<int16_t>(cy - 6), 2, green);
+    constexpr int16_t kTomatoYOffset = 4;
+    constexpr int16_t kTomatoRadiusX = 11;
+    constexpr int16_t kTomatoRadiusY = 9;
+    constexpr int16_t kTomatoShineXOffset = -4;
+    constexpr int16_t kTomatoShineRadius = 3;
+    constexpr int16_t kTomatoStemYOffset = -6;
+    constexpr int16_t kTomatoStemRadius = 2;
+
+    DisplayManager::fillEllipse(centerX, static_cast<int16_t>(centerY + kTomatoYOffset), kTomatoRadiusX, kTomatoRadiusY, colorRed);
+    DisplayManager::fillCircle(static_cast<int16_t>(centerX + kTomatoShineXOffset), centerY, kTomatoShineRadius, shine);
+    DisplayManager::fillCircle(centerX, static_cast<int16_t>(centerY + kTomatoStemYOffset), kTomatoStemRadius, colorGreen);
 }
 
-static void drawDumbbellIcon(int16_t cx, int16_t cy, uint16_t fg, uint16_t bg) {
+static void drawDumbbellIcon(int16_t centerX, int16_t centerY, uint16_t fgColor, uint16_t bgColor) {
     if (!DisplayManager::isReady()) {
         return;
     }
@@ -898,44 +925,44 @@ static void drawDumbbellIcon(int16_t cx, int16_t cy, uint16_t fg, uint16_t bg) {
     const int16_t plateH = 14;
     const int16_t barW = 16;
     const int16_t barH = 4;
-    const int16_t y0 = static_cast<int16_t>(cy - plateH / 2 + 2);
+    const auto yTop = static_cast<int16_t>(centerY - plateH / 2 + 2);
 
     // bar
-    DisplayManager::fillRect(static_cast<int16_t>(cx - barW / 2), static_cast<int16_t>(cy - barH / 2 + 2), barW, barH, fg);
+    DisplayManager::fillRect(static_cast<int16_t>(centerX - barW / 2), static_cast<int16_t>(centerY - barH / 2 + 2), barW, barH,
+                             fgColor);
 
     // left plate + inner cutout
-    const int16_t lpX = static_cast<int16_t>(cx - barW / 2 - plateW);
-    DisplayManager::fillRoundRect(lpX, y0, plateW, plateH, 2, fg);
-    DisplayManager::fillRoundRect(static_cast<int16_t>(lpX + 2), static_cast<int16_t>(y0 + 2), static_cast<int16_t>(plateW - 4),
-                                  static_cast<int16_t>(plateH - 4), 1, bg);
+    const auto leftPlateX = static_cast<int16_t>(centerX - barW / 2 - plateW);
+    DisplayManager::fillRoundRect(leftPlateX, yTop, plateW, plateH, 2, fgColor);
+    DisplayManager::fillRoundRect(static_cast<int16_t>(leftPlateX + 2), static_cast<int16_t>(yTop + 2),
+                                  static_cast<int16_t>(plateW - 4), static_cast<int16_t>(plateH - 4), 1, bgColor);
 
     // right plate + inner cutout
-    const int16_t rpX = static_cast<int16_t>(cx + barW / 2);
-    DisplayManager::fillRoundRect(rpX, y0, plateW, plateH, 2, fg);
-    DisplayManager::fillRoundRect(static_cast<int16_t>(rpX + 2), static_cast<int16_t>(y0 + 2), static_cast<int16_t>(plateW - 4),
-                                  static_cast<int16_t>(plateH - 4), 1, bg);
+    const auto rightPlateX = static_cast<int16_t>(centerX + barW / 2);
+    DisplayManager::fillRoundRect(rightPlateX, yTop, plateW, plateH, 2, fgColor);
+    DisplayManager::fillRoundRect(static_cast<int16_t>(rightPlateX + 2), static_cast<int16_t>(yTop + 2),
+                                  static_cast<int16_t>(plateW - 4), static_cast<int16_t>(plateH - 4), 1, bgColor);
 }
 
-static void drawPillIcon(int16_t cx, int16_t cy, uint16_t fg, uint16_t bg) {
+static void drawPillIcon(int16_t centerX, int16_t centerY, uint16_t fgColor, uint16_t bgColor) {
     if (!DisplayManager::isReady()) {
         return;
     }
     // Vertical capsule (two-tone) reads best at small sizes.
-    const int16_t w = 12;
-    const int16_t h = 24;
-    const int16_t r = 6;
-    const int16_t x0 = static_cast<int16_t>(cx - w / 2);
-    const int16_t y0 = static_cast<int16_t>(cy - h / 2);
+    const int16_t width = 12;
+    const int16_t height = 24;
+    const int16_t radius = 6;
+    const auto xLeft = static_cast<int16_t>(centerX - width / 2);
+    const auto yTop = static_cast<int16_t>(centerY - height / 2);
 
-    const uint16_t purple = 0x780F;
-    const uint16_t outline = 0x0000;
+    const uint16_t outline = RGB565_BLACK;
 
-    DisplayManager::fillRoundRect(x0, y0, w, h, r, purple);
-    DisplayManager::fillRect(x0, static_cast<int16_t>(y0 + h / 2), w, static_cast<int16_t>(h / 2), fg);
-    DisplayManager::drawRoundRect(x0, y0, w, h, r, outline);
-    DisplayManager::drawLine(static_cast<int16_t>(x0 + 1), static_cast<int16_t>(y0 + h / 2), static_cast<int16_t>(x0 + w - 2),
-                             static_cast<int16_t>(y0 + h / 2), outline);
-    (void)bg;
+    DisplayManager::fillRoundRect(xLeft, yTop, width, height, radius, RGB565_PURPLE);
+    DisplayManager::fillRect(xLeft, static_cast<int16_t>(yTop + height / 2), width, static_cast<int16_t>(height / 2), fgColor);
+    DisplayManager::drawRoundRect(xLeft, yTop, width, height, radius, outline);
+    DisplayManager::drawLine(static_cast<int16_t>(xLeft + 1), static_cast<int16_t>(yTop + height / 2),
+                             static_cast<int16_t>(xLeft + width - 2), static_cast<int16_t>(yTop + height / 2), outline);
+    (void)bgColor;
 }
 
 auto DisplayManager::drawTrackerBar(int16_t waterCount, int16_t tomatoCount, int16_t pushupCount, bool supplementsDone,
@@ -953,64 +980,76 @@ auto DisplayManager::drawTrackerBar(int16_t waterCount, int16_t tomatoCount, int
     if (clearBg) {
         safeFillRect(bar.x, bar.y, bar.w, bar.h, bgColor);
     }
-    safeFillRect(bar.x, static_cast<int16_t>(bar.y + bar.h - 1), bar.w, 1, static_cast<uint16_t>(0x39E7));  // separator
+    safeFillRect(bar.x, static_cast<int16_t>(bar.y + bar.h - 1), bar.w, 1, UI_SEPARATOR_COLOR);
 
     const int16_t pad = UI_PADDING;
-    const int16_t innerW = static_cast<int16_t>(bar.w - 2 * pad);
-    const int16_t cellW = (innerW > 0) ? static_cast<int16_t>(innerW / 4) : static_cast<int16_t>(bar.w / 4);
+    const auto innerWidth = static_cast<int16_t>(bar.w - 2 * pad);
+    const auto cellWidth = (innerWidth > 0) ? static_cast<int16_t>(innerWidth / 4) : static_cast<int16_t>(bar.w / 4);
 
-    const int16_t yMid = static_cast<int16_t>(bar.y + bar.h / 2);
-    const int16_t iconCy = static_cast<int16_t>(yMid - 4);
+    const auto yMid = static_cast<int16_t>(bar.y + bar.h / 2);
+    const auto iconCy = static_cast<int16_t>(yMid - 4);
 
     constexpr uint8_t countSize = 2;  // slightly smaller numbers
-    const int16_t countY = static_cast<int16_t>(bar.y + bar.h - (8 * countSize) - 6);
+    const auto countY = static_cast<int16_t>(bar.y + bar.h - (8 * countSize) - 6);
 
-    const uint16_t cyan = 0x07FF;   // approx cyan in RGB565
+    constexpr uint16_t cyan = 0x07FF;   // approx cyan in RGB565
     const uint16_t green = LCD_GREEN;
     const uint16_t red = LCD_RED;
-    const uint16_t gray = 0x7BEF;
+    const uint16_t gray = RGB565_GRAY_50;
+
+    constexpr int16_t kIconInsetX = 14;
+    constexpr int16_t kCountInsetX = 14;
+    constexpr int16_t kCountInsetXWide = 18;
+    constexpr int16_t kPillCountInsetX = 16;
 
     // Water
     {
-        const int16_t cellX = static_cast<int16_t>(bar.x + pad + 0 * cellW);
-        const int16_t iconCx = static_cast<int16_t>(cellX + 14);
+        const auto cellX = static_cast<int16_t>(bar.x + pad + 0 * cellWidth);
+        const auto iconCx = static_cast<int16_t>(cellX + kIconInsetX);
         drawDropletIcon(iconCx, iconCy, cyan, LCD_WHITE);
-        DisplayManager::drawTextWrapped(static_cast<int16_t>(iconCx + 14), countY, String(waterCount), countSize, cyan,
+        DisplayManager::drawTextWrapped(static_cast<int16_t>(iconCx + kCountInsetX), countY, String(waterCount), countSize, cyan,
                                         bgColor, true);
     }
 
     // Tomato
     {
-        const int16_t cellX = static_cast<int16_t>(bar.x + pad + 1 * cellW);
-        const int16_t iconCx = static_cast<int16_t>(cellX + 14);
+        const auto cellX = static_cast<int16_t>(bar.x + pad + 1 * cellWidth);
+        const auto iconCx = static_cast<int16_t>(cellX + kIconInsetX);
         drawTomatoIcon(iconCx, iconCy, red, green, LCD_WHITE);
-        DisplayManager::drawTextWrapped(static_cast<int16_t>(iconCx + 14), countY, String(tomatoCount), countSize, red,
+        DisplayManager::drawTextWrapped(static_cast<int16_t>(iconCx + kCountInsetX), countY, String(tomatoCount), countSize, red,
                                         bgColor, true);
     }
 
     // Dumbbell (pushups count)
     {
-        const int16_t cellX = static_cast<int16_t>(bar.x + pad + 2 * cellW);
-        const int16_t iconCx = static_cast<int16_t>(cellX + 14);
+        const auto cellX = static_cast<int16_t>(bar.x + pad + 2 * cellWidth);
+        const auto iconCx = static_cast<int16_t>(cellX + kIconInsetX);
         drawDumbbellIcon(iconCx, iconCy, LCD_WHITE, bgColor);
-        DisplayManager::drawTextWrapped(static_cast<int16_t>(iconCx + 18), countY, String(pushupCount), countSize, LCD_WHITE,
+        DisplayManager::drawTextWrapped(static_cast<int16_t>(iconCx + kCountInsetXWide), countY, String(pushupCount), countSize, LCD_WHITE,
                                         bgColor, true);
     }
 
     // Supplements (pill + 0 or green check)
     {
-        const int16_t cellX = static_cast<int16_t>(bar.x + pad + 3 * cellW);
-        const int16_t iconCx = static_cast<int16_t>(cellX + 14);
+        const auto cellX = static_cast<int16_t>(bar.x + pad + 3 * cellWidth);
+        const auto iconCx = static_cast<int16_t>(cellX + kIconInsetX);
         drawPillIcon(iconCx, iconCy, LCD_WHITE, bgColor);
         if (supplementsDone) {
             // Checkmark
-            const int16_t x0 = static_cast<int16_t>(iconCx + 14);
-            const int16_t y0 = static_cast<int16_t>(countY + 10);
-            DisplayManager::drawLine(x0, y0, static_cast<int16_t>(x0 + 4), static_cast<int16_t>(y0 + 4), green);
-            DisplayManager::drawLine(static_cast<int16_t>(x0 + 4), static_cast<int16_t>(y0 + 4), static_cast<int16_t>(x0 + 12),
-                                     static_cast<int16_t>(y0 - 4), green);
+            constexpr int16_t kCheckYOffset = 10;
+            constexpr int16_t kCheckSeg1X = 4;
+            constexpr int16_t kCheckSeg1Y = 4;
+            constexpr int16_t kCheckSeg2X = 12;
+            constexpr int16_t kCheckSeg2Y = -4;
+
+            const auto checkX0 = static_cast<int16_t>(iconCx + kCountInsetX);
+            const auto checkY0 = static_cast<int16_t>(countY + kCheckYOffset);
+            DisplayManager::drawLine(checkX0, checkY0, static_cast<int16_t>(checkX0 + kCheckSeg1X), static_cast<int16_t>(checkY0 + kCheckSeg1Y),
+                                     green);
+            DisplayManager::drawLine(static_cast<int16_t>(checkX0 + kCheckSeg1X), static_cast<int16_t>(checkY0 + kCheckSeg1Y),
+                                     static_cast<int16_t>(checkX0 + kCheckSeg2X), static_cast<int16_t>(checkY0 + kCheckSeg2Y), green);
         } else {
-            DisplayManager::drawTextWrapped(static_cast<int16_t>(iconCx + 16), countY, "0", countSize, gray, bgColor, true);
+            DisplayManager::drawTextWrapped(static_cast<int16_t>(iconCx + kPillCountInsetX), countY, "0", countSize, gray, bgColor, true);
         }
     }
 
@@ -1029,13 +1068,13 @@ auto DisplayManager::drawBodyText(const String& text, uint8_t textSize, uint16_t
     }
 
     // Content padding within body
-    const int16_t x = static_cast<int16_t>(body.x + UI_PADDING);
-    const int16_t y = static_cast<int16_t>(body.y + UI_PADDING);
+    const auto xPos = static_cast<int16_t>(body.x + UI_PADDING);
+    const auto yPos = static_cast<int16_t>(body.y + UI_PADDING);
     if (clearBg) {
         safeFillRect(body.x, body.y, body.w, body.h, bgColor);
     }
 
-    DisplayManager::drawTextWrapped(x, y, text, textSize, fgColor, bgColor, false);
+    DisplayManager::drawTextWrapped(xPos, yPos, text, textSize, fgColor, bgColor, false);
     yield();
 }
 
