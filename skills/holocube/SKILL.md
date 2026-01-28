@@ -1,7 +1,7 @@
 ---
 name: HoloCube (Pomodoro + Trackers)
 slug: holocube
-version: 0.2.0
+version: 0.2.1
 description: Run the HoloCube Pomodoro “OS” UI (tracker bar + centered label + lobster) and control water/exercise/focus/pills live.
 metadata:
   clawdbot:
@@ -32,7 +32,11 @@ Useful flags:
 
 - `--work 25 --short 5 --long 15 --sessions 4`
 - `--focus-text "BUILD"`
-- `--water 0 --exercise 0 --focus 0 --pills`
+- **Trackers (starting values)**:
+  - `--water 0` (water count)
+  - `--exercise 0` (exercise count)
+  - `--focus 0` (focus count)
+  - `--pills` (mark supplements as done)
 
 ## Live tracker commands (while Pomodoro is running)
 
@@ -48,6 +52,7 @@ Type these into the terminal running Pomodoro (press Enter after each):
   - `set water 3`
   - `set exercise 1`
   - `set focus 10`
+  - `set focus 0` (reset focus back to 0)
 - **Help / quit**:
   - `help`
   - `q`
