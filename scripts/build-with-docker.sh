@@ -1,6 +1,6 @@
 #!/bin/bash
 
-readonly IMAGE_NAME="ghcr.io/times-z/devcontainer:latest"
+readonly IMAGE_NAME="${IMAGE_NAME:-ghcr.io/andrewjiang/holoclawd-open-firmware-devcontainer:latest}"
 readonly BUILD_DIR=".pio/build/esp12e/"
 readonly PIO_BIN="/home/debian/.platformio/penv/bin/pio"
 
