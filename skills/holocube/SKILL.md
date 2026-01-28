@@ -1,7 +1,7 @@
 ---
 name: HoloCube (Pomodoro + Trackers)
 slug: holocube
-version: 0.2.1
+version: 0.2.2
 description: Run the HoloCube Pomodoro “OS” UI (tracker bar + centered label + lobster) and control water/exercise/focus/pills live.
 metadata:
   clawdbot:
@@ -12,7 +12,11 @@ metadata:
 
 ## What this skill does
 
-This repo includes a template “OS” layout for the HoloCube:
+The implementation lives in the **HoloClawd firmware repo**:
+
+- `https://github.com/andrewjiang/HoloClawd-Open-Firmware`
+
+It includes a template “OS” layout for the HoloCube:
 
 - **Top**: a tracker bar (icons + counts + pixel border)
 - **Middle**: centered app label + smaller timer
@@ -22,7 +26,14 @@ The Pomodoro app uses this layout and supports live tracker updates.
 
 ## Run Pomodoro
 
-From this repo root:
+Clone the firmware repo and run from its root:
+
+```bash
+git clone https://github.com/andrewjiang/HoloClawd-Open-Firmware.git
+cd HoloClawd-Open-Firmware
+```
+
+Then:
 
 ```bash
 uv run --script examples/pomodoro.py --ip <HOLOCUBE_IP> --task "DEEP WORK"
